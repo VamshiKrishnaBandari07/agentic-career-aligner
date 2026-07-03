@@ -25,9 +25,9 @@ def get_pipeline(
     settings: Settings = Depends(get_settings),
     _job_description: str = Depends(require_job_description),
 ) -> MatchPipeline:
-    if not settings.openai_configured:
+    if settings.uses_openai and not settings.openai_configured:
         raise OpenAINotConfiguredError(
-            "OpenAI API key not set. Edit .env in the project folder, set OPENAI_API_KEY=sk-... "
-            "from https://platform.openai.com/api-keys then restart the server."
+            "OpenAI mode requires a valid API key. Set OPENAI_API_KEY in .env "
+            "or switch MATCH_PROVIDER=free for no-cost local matching."
         )
     return build_pipeline(settings)

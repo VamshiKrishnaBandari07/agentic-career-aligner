@@ -21,10 +21,10 @@ python -m venv .venv
 # 2. Install package
 pip install -e ".[dev]"
 
-# 3. Configure OpenAI (required for /match)
+# 3. Configure (optional — free mode works without OpenAI)
 copy .env.example .env        # Windows
-# cp .env.example .env        # macOS/Linux
-# Edit .env and set OPENAI_API_KEY=sk-...
+# Default MATCH_PROVIDER=free needs no API key or billing
+# For AI mode: set MATCH_PROVIDER=openai and OPENAI_API_KEY=sk-...
 
 # 4. Run server
 job-matcher
@@ -73,7 +73,9 @@ pytest
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OPENAI_API_KEY` | — | Required for `/match` |
+| `MATCH_PROVIDER` | `free` | `free` = local matching (no cost), `openai` = GPT analysis |
+| `FREEAPI_BASE_URL` | `https://api.freeapi.app/api/v1` | [FreeAPI.app](https://github.com/hiteshchoudhary/apihub) hub URL |
+| `OPENAI_API_KEY` | — | Required only when `MATCH_PROVIDER=openai` |
 | `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
 | `CHAT_MODEL` | `gpt-4o-mini` | Comparison model |
 | `MAX_PDF_MB` | `10` | Max upload size per file |

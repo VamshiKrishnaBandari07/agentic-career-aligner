@@ -38,6 +38,7 @@ async def test_home_page():
 @pytest.mark.asyncio
 async def test_match_requires_openai_key(sample_resume_pdf: bytes, monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "")
+    monkeypatch.setenv("MATCH_PROVIDER", "openai")
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -51,7 +52,32 @@ async def test_match_requires_openai_key(sample_resume_pdf: bytes, monkeypatch):
             },
         )
     assert response.status_code == 503
-    assert "OPENAI_API_KEY" in response.json()["detail"]
+    assert "OPENAI" in response.json()["detail"].upper()
+
+
+@pytest.mark.asyncio
+async def test_free_match_works_without_openai(
+    sample_resume_pdf: bytes, sample_job_pdf: bytes, monkeypatch
+):
+    monkeypatch.setenv("MATCH_PROVIDER", "free")
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/match",
+            files={
+                "resume": ("resume.pdf", io.BytesIO(sample_resume_pdf), "application/pdf"),
+            },
+            data={
+                "job_description": "Requirements: Python, PyTorch, NLP, REST APIs, FastAPI.",
+                "company_about": "AI startup focused on NLP products.",
+            },
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert 0 <= data["overall_score"] <= 100
+    assert data["metadata"]["match_provider"] == "free_local"
+    assert "Python" in data["matched_skills"] or "FastAPI" in data["matched_skills"]
 
 
 @pytest.mark.asyncio
@@ -91,6 +117,8 @@ async def test_health_endpoint():
     data = response.json()
     assert data["status"] == "ok"
     assert "openai_configured" in data
+    assert data["free_mode"] is True
+    assert data["match_provider"] == "free"
 
 
 @pytest.mark.asyncio

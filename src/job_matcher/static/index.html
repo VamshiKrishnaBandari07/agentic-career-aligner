@@ -227,10 +227,15 @@
     </header>
 
     <div class="setup-banner" id="setup-banner">
-      <strong>OpenAI API key required</strong>
-      Open <code>.env</code> in the project folder, replace <code>sk-your-key-here</code> with your real key from
-      <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style="color:#93c5fd">platform.openai.com/api-keys</a>,
-      then restart the server.
+      <strong>OpenAI mode needs a paid API key</strong>
+      You're in <code>MATCH_PROVIDER=free</code> mode by default (no billing).
+      To use AI analysis, set <code>MATCH_PROVIDER=openai</code> and add billing at
+      <a href="https://platform.openai.com/account/billing" target="_blank" rel="noopener" style="color:#93c5fd">OpenAI billing</a>.
+    </div>
+    <div class="setup-banner" id="free-banner" style="border-color:var(--match);color:#6ee7b7;background:rgba(16,185,129,0.1)">
+      <strong>Free local matching active</strong>
+      Analysis runs on your machine — no OpenAI credits needed. Powered by local skill extraction
+      (inspired by <a href="https://github.com/hiteshchoudhary/apihub" target="_blank" rel="noopener" style="color:#93c5fd">FreeAPI.app</a> learning stack).
     </div>
 
     <div class="card">
@@ -315,11 +320,16 @@
     const errorEl = document.getElementById("error");
     const resultsEl = document.getElementById("results");
     const setupBanner = document.getElementById("setup-banner");
+    const freeBanner = document.getElementById("free-banner");
 
     fetch("/health")
       .then((r) => r.json())
       .then((data) => {
-        if (!data.openai_configured) setupBanner.classList.add("show");
+        if (data.free_mode) {
+          freeBanner.classList.add("show");
+        } else if (!data.openai_configured) {
+          setupBanner.classList.add("show");
+        }
       })
       .catch(() => {});
 

@@ -6,6 +6,8 @@ from job_matcher.core.models.document import ParsedDocument
 from job_matcher.core.schemas.match import MatchResponse
 from job_matcher.services.comparison.cosine_similarity import cosine_similarity
 from job_matcher.services.comparison.llm_comparator import LLMComparator
+from job_matcher.services.comparison.local_comparator import LocalComparator
+from job_matcher.services.embedding.local_embedder import LocalEmbedder
 from job_matcher.services.embedding.openai_embedder import OpenAIEmbedder
 from job_matcher.services.pdf.pymupdf_parser import PyMuPDFParser
 from job_matcher.services.scoring.match_scorer import MatchScorer
@@ -16,8 +18,8 @@ from job_matcher.utils.text_document import build_job_document
 class MatchPipeline:
     settings: Settings
     pdf_parser: PyMuPDFParser
-    embedder: OpenAIEmbedder
-    comparator: LLMComparator
+    embedder: LocalEmbedder | OpenAIEmbedder
+    comparator: LocalComparator | LLMComparator
     scorer: MatchScorer
 
     async def run(
@@ -37,6 +39,7 @@ class MatchPipeline:
         breakdown = self.scorer.score(sim, comparison)
 
         elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
+        provider = "openai" if self.settings.uses_openai else "free_local"
         return MatchResponse(
             overall_score=breakdown.overall_score,
             embedding_similarity=breakdown.embedding_similarity,
@@ -56,9 +59,16 @@ class MatchPipeline:
                 "resume_chars": resume_doc.char_count,
                 "job_chars": job_doc.char_count,
                 "job_input": "text",
+                "match_provider": provider,
                 "elapsed_ms": elapsed_ms,
-                "embedding_model": self.settings.embedding_model,
-                "chat_model": self.settings.chat_model,
+                "embedding_model": (
+                    self.settings.embedding_model
+                    if self.settings.uses_openai
+                    else "local-hash-embedder"
+                ),
+                "chat_model": (
+                    self.settings.chat_model if self.settings.uses_openai else "local-rules"
+                ),
             },
         )
 
@@ -78,10 +88,17 @@ class MatchPipeline:
 
 
 def build_pipeline(settings: Settings) -> MatchPipeline:
+    if settings.uses_openai:
+        embedder: LocalEmbedder | OpenAIEmbedder = OpenAIEmbedder(settings)
+        comparator: LocalComparator | LLMComparator = LLMComparator(settings)
+    else:
+        embedder = LocalEmbedder()
+        comparator = LocalComparator()
+
     return MatchPipeline(
         settings=settings,
         pdf_parser=PyMuPDFParser(),
-        embedder=OpenAIEmbedder(settings),
-        comparator=LLMComparator(settings),
+        embedder=embedder,
+        comparator=comparator,
         scorer=MatchScorer(settings),
     )

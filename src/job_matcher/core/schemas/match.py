@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 class HealthResponse(BaseModel):
     status: str = "ok"
     openai_configured: bool
+    match_provider: str
+    free_mode: bool
 
 
 class ParseResponse(BaseModel):

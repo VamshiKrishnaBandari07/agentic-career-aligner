@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     embedding_model: str = "text-embedding-3-small"
     chat_model: str = "gpt-4o-mini"
+    match_provider: str = "free"  # free | openai
+    freeapi_base_url: str = "https://api.freeapi.app/api/v1"
+    freeapi_timeout: float = 15.0
     max_pdf_mb: int = 10
     chunk_size: int = 1000
     chunk_overlap: int = 200
@@ -37,3 +40,11 @@ class Settings(BaseSettings):
     def openai_configured(self) -> bool:
         key = self.openai_api_key.strip()
         return bool(key) and key != "sk-your-key-here" and key.startswith("sk-")
+
+    @property
+    def uses_openai(self) -> bool:
+        return self.match_provider.lower() == "openai"
+
+    @property
+    def uses_free_local(self) -> bool:
+        return self.match_provider.lower() == "free"
