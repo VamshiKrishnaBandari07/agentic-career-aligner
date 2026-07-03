@@ -1,12 +1,19 @@
 import json
 
-from openai import AsyncOpenAI
-from tenacity import retry, stop_after_attempt, wait_exponential
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AsyncOpenAI,
+    InternalServerError,
+    OpenAIError,
+)
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from job_matcher.core.config import Settings
 from job_matcher.core.exceptions import ComparisonError
 from job_matcher.core.models.document import ParsedDocument
 from job_matcher.core.models.match_result import ComparisonResult
+from job_matcher.integrations.openai.errors import raise_comparison_error
 
 COMPARE_PROMPT = """You are an expert career coach and technical recruiter.
 Compare the candidate's RESUME against the JOB DESCRIPTION.
@@ -56,7 +63,14 @@ class OpenAIChat:
         self._client = client
         self._model = settings.chat_model
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
+    @retry(
+        retry=retry_if_exception_type(
+            (APIConnectionError, APITimeoutError, InternalServerError)
+        ),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=8),
+        reraise=True,
+    )
     async def compare_documents(
         self, resume: ParsedDocument, job: ParsedDocument
     ) -> ComparisonResult:
@@ -79,6 +93,8 @@ class OpenAIChat:
             )
             raw = response.choices[0].message.content or "{}"
             data = json.loads(raw)
+        except OpenAIError as exc:
+            raise_comparison_error(exc)
         except Exception as exc:
             raise ComparisonError(f"OpenAI comparison failed: {exc}") from exc
 

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAIError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from job_matcher.api.routes import health, match
 from job_matcher.core.exceptions import (
@@ -68,9 +69,24 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(OpenAIError)
     async def openai_error_handler(_: Request, exc: OpenAIError) -> JSONResponse:
+        from job_matcher.integrations.openai.errors import openai_error_message
+
         return JSONResponse(
             status_code=502,
-            content={"detail": f"OpenAI API error: {exc}"},
+            content={"detail": openai_error_message(exc)},
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(
+        _: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Unexpected server error: {exc}"},
         )
 
     @app.exception_handler(JobMatcherError)

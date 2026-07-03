@@ -36,7 +36,8 @@ async def test_home_page():
 
 
 @pytest.mark.asyncio
-async def test_match_requires_openai_key(sample_resume_pdf: bytes):
+async def test_match_requires_openai_key(sample_resume_pdf: bytes, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "")
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(

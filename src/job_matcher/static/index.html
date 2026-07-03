@@ -401,9 +401,15 @@
 
       try {
         const res = await fetch("/match", { method: "POST", body: form });
-        const data = await res.json();
+        const raw = await res.text();
+        let data = {};
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          throw new Error(raw || `Server error (${res.status})`);
+        }
         if (!res.ok) {
-          const msg = data.detail || "Analysis failed";
+          const msg = data.detail || raw || "Analysis failed";
           if (res.status === 503 && msg.includes("OPENAI_API_KEY")) {
             setupBanner.classList.add("show");
             throw new Error(
