@@ -36,18 +36,49 @@ async def test_home_page():
 
 
 @pytest.mark.asyncio
-async def test_match_requires_openai_key(sample_resume_pdf: bytes, sample_job_pdf: bytes):
+async def test_match_requires_openai_key(sample_resume_pdf: bytes):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/match",
             files={
                 "resume": ("resume.pdf", io.BytesIO(sample_resume_pdf), "application/pdf"),
-                "job_description": ("job.pdf", io.BytesIO(sample_job_pdf), "application/pdf"),
+            },
+            data={
+                "job_description": "Requirements: Python, PyTorch, NLP, REST APIs, FastAPI.",
+                "company_about": "AI startup focused on NLP products.",
             },
         )
     assert response.status_code == 503
     assert "OPENAI_API_KEY" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_match_requires_job_description_text(sample_resume_pdf: bytes):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/match",
+            files={
+                "resume": ("resume.pdf", io.BytesIO(sample_resume_pdf), "application/pdf"),
+            },
+            data={"job_description": "   ", "company_about": ""},
+        )
+    assert response.status_code == 422
+    assert "job description" in response.json()["detail"].lower()
+
+
+def test_build_job_document_combines_company_and_description():
+    from job_matcher.utils.text_document import build_job_document
+
+    doc = build_job_document(
+        job_description="Need Python and FastAPI.",
+        company_about="We are a fintech company.",
+    )
+    assert "ABOUT THE COMPANY" in doc.text
+    assert "fintech" in doc.text
+    assert "JOB DESCRIPTION" in doc.text
+    assert "Python" in doc.text
 
 
 @pytest.mark.asyncio

@@ -6,6 +6,10 @@ class PDFParseError(JobMatcherError):
     """Failed to extract text from a PDF."""
 
 
+class EmptyTextError(JobMatcherError):
+    """Required text input is missing or empty."""
+
+
 class FileTooLargeError(JobMatcherError):
     """Uploaded file exceeds configured limit."""
 

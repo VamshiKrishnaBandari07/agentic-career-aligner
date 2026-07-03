@@ -41,14 +41,15 @@ API reference: **http://127.0.0.1:8000/docs**
 |----------|--------|-------------|
 | `/health` | GET | Service health + OpenAI config status |
 | `/parse` | POST | Upload one PDF, get extracted text preview |
-| `/match` | POST | Upload resume + job PDF, get match analysis |
+| `/match` | POST | Upload resume PDF + paste job description text → match analysis |
 
 ### Example: match two PDFs
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/match" ^
   -F "resume=@resume.pdf" ^
-  -F "job_description=@job.pdf"
+  -F "job_description=Python, FastAPI, ML required. 2+ years experience." ^
+  -F "company_about=AI startup building NLP tools."
 ```
 
 ## Project structure

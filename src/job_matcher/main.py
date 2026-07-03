@@ -9,6 +9,7 @@ from openai import OpenAIError
 from job_matcher.api.routes import health, match
 from job_matcher.core.exceptions import (
     ComparisonError,
+    EmptyTextError,
     FileTooLargeError,
     JobMatcherError,
     OpenAINotConfiguredError,
@@ -42,6 +43,10 @@ def create_app() -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def home() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
+
+    @app.exception_handler(EmptyTextError)
+    async def empty_text_handler(_: Request, exc: EmptyTextError) -> JSONResponse:
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
 
     @app.exception_handler(PDFParseError)
     async def pdf_parse_handler(_: Request, exc: PDFParseError) -> JSONResponse:

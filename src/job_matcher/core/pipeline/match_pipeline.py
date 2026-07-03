@@ -9,6 +9,7 @@ from job_matcher.services.comparison.llm_comparator import LLMComparator
 from job_matcher.services.embedding.openai_embedder import OpenAIEmbedder
 from job_matcher.services.pdf.pymupdf_parser import PyMuPDFParser
 from job_matcher.services.scoring.match_scorer import MatchScorer
+from job_matcher.utils.text_document import build_job_document
 
 
 @dataclass
@@ -23,13 +24,13 @@ class MatchPipeline:
         self,
         resume_bytes: bytes,
         resume_name: str,
-        job_bytes: bytes,
-        job_name: str,
+        job_description: str,
+        company_about: str = "",
     ) -> MatchResponse:
         started = time.perf_counter()
 
         resume_doc = self.pdf_parser.parse(resume_bytes, resume_name)
-        job_doc = self.pdf_parser.parse(job_bytes, job_name)
+        job_doc = build_job_document(job_description, company_about)
 
         resume_vec, job_vec, comparison = await self._compare(resume_doc, job_doc)
         sim = cosine_similarity(resume_vec, job_vec)
@@ -54,6 +55,7 @@ class MatchPipeline:
                 "job_pages": job_doc.page_count,
                 "resume_chars": resume_doc.char_count,
                 "job_chars": job_doc.char_count,
+                "job_input": "text",
                 "elapsed_ms": elapsed_ms,
                 "embedding_model": self.settings.embedding_model,
                 "chat_model": self.settings.chat_model,

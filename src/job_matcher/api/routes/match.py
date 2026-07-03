@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from job_matcher.api.deps import get_pdf_parser, get_pipeline, get_settings
+from job_matcher.api.deps import get_pdf_parser, get_pipeline, get_settings, require_job_description
 from job_matcher.core.config import Settings
 from job_matcher.core.pipeline.match_pipeline import MatchPipeline
 from job_matcher.core.schemas.match import MatchResponse, ParseResponse
@@ -37,10 +37,15 @@ async def parse_pdf(
 @router.post("/match", response_model=MatchResponse)
 async def match_documents(
     resume: UploadFile = File(..., description="Resume PDF"),
-    job_description: UploadFile = File(..., description="Job description PDF"),
+    job_description: str = Depends(require_job_description),
+    company_about: str = Form("", description="Paste company / about-the-role text (optional)"),
     settings: Settings = Depends(get_settings),
     pipeline: MatchPipeline = Depends(get_pipeline),
 ) -> MatchResponse:
     resume_bytes, resume_name = await _read_upload(resume, settings)
-    job_bytes, job_name = await _read_upload(job_description, settings)
-    return await pipeline.run(resume_bytes, resume_name, job_bytes, job_name)
+    return await pipeline.run(
+        resume_bytes,
+        resume_name,
+        job_description=job_description,
+        company_about=company_about,
+    )
