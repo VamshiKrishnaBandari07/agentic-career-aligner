@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Career Aligner — Resume vs Job Match</title>
+  <meta name="description" content="Free local CV review — upload resume, paste job description, get match score, missing skills, and resume suggestions. No subscription." />
+  <meta name="author" content="Vamshi Krishna Bandari" />
+  <title>Career Aligner — Free CV Review</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -222,7 +224,18 @@
       font-size: 0.8rem;
       color: var(--muted);
     }
-    footer a { color: var(--accent); }
+    .score-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 0.35rem;
+    }
+    .score-label.high { color: var(--success); }
+    .score-label.mid { color: var(--warn); }
+    .score-label.low { color: var(--danger); }
+    .highlight-card {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(16,185,129,0.06));
+    }
   </style>
 </head>
 <body>
@@ -232,7 +245,7 @@
       <p class="tagline">I built this for my own job hunt — now it's yours. Upload your CV, paste any job description, get detailed feedback. <strong>Free. Local. Private.</strong></p>
     </header>
 
-    <div class="setup-banner" id="free-banner" style="border-color:var(--match);color:#6ee7b7;background:rgba(16,185,129,0.1)">
+    <div class="setup-banner show" id="free-banner" style="border-color:var(--match);color:#6ee7b7;background:rgba(16,185,129,0.1)">
       <strong>Runs 100% on your computer</strong>
       No subscription · No API key · No account · Your CV never leaves this machine
     </div>
@@ -272,12 +285,21 @@
           <div class="score-circle" id="score-circle">—</div>
           <div>
             <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem">Overall Match</div>
+            <div class="score-label" id="score-label"></div>
             <div class="summary" id="summary"></div>
           </div>
         </div>
       </div>
 
+      <div class="card highlight-card">
+        <div class="section-title">Suggested resume changes</div>
+        <ul class="feedback-list tips detail" id="resume-suggestions"></ul>
+      </div>
+
       <div class="card">
+        <div class="section-title">Your strengths</div>
+        <ul class="feedback-list matched" id="strengths"></ul>
+
         <div class="section-title">Matched skills</div>
         <ul class="feedback-list matched" id="matched-skills"></ul>
 
@@ -292,12 +314,6 @@
 
         <div class="section-title">Missing experience</div>
         <ul class="feedback-list missing" id="missing-experience"></ul>
-
-        <div class="section-title">Your strengths</div>
-        <ul class="feedback-list matched" id="strengths"></ul>
-
-        <div class="section-title">Suggested resume changes</div>
-        <ul class="feedback-list tips detail" id="resume-suggestions"></ul>
 
         <div class="section-title">Recommendations</div>
         <ul class="feedback-list tips" id="recommendations"></ul>
@@ -398,6 +414,13 @@
       return "low";
     }
 
+    function scoreLabel(score) {
+      if (score >= 80) return "Excellent fit — strong candidate";
+      if (score >= 70) return "Good fit — minor gaps to address";
+      if (score >= 50) return "Moderate fit — tailor your CV";
+      return "Needs work — significant gaps found";
+    }
+
     analyzeBtn.addEventListener("click", async () => {
       errorEl.classList.remove("show");
       resultsEl.classList.remove("show");
@@ -427,8 +450,14 @@
         const circle = document.getElementById("score-circle");
         circle.textContent = score + "%";
         circle.className = "score-circle " + scoreClass(score);
+        const labelEl = document.getElementById("score-label");
+        labelEl.textContent = scoreLabel(score);
+        labelEl.className = "score-label " + scoreClass(score);
         document.getElementById("summary").textContent = data.summary || "";
 
+        renderList(document.getElementById("resume-suggestions"), data.resume_suggestions,
+          "Add a Skills section and bullet points to your resume, then re-analyze.");
+        renderList(document.getElementById("strengths"), data.strengths, "—");
         renderList(document.getElementById("matched-skills"), data.matched_skills,
           "No clear skill matches yet — add a Skills section to your resume and paste a detailed job description.");
         renderList(document.getElementById("missing-skills"), data.missing_skills,
@@ -439,8 +468,6 @@
           "No qualification gaps detected for degree, certs, or years of experience.");
         renderList(document.getElementById("missing-experience"), data.missing_experience,
           "No experience gaps flagged from the job text.");
-        renderList(document.getElementById("strengths"), data.strengths, "—");
-        renderList(document.getElementById("resume-suggestions"), data.resume_suggestions, "No extra suggestions — review gaps above.");
         renderList(document.getElementById("recommendations"), data.recommendations, "—");
         renderList(document.getElementById("action-items"), data.action_items, "—");
 

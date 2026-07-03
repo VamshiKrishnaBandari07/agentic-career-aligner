@@ -1,6 +1,7 @@
 import re
 
 from job_matcher.services.analysis.text_analyzer import (
+    STOPWORDS,
     content_words,
     extract_job_phrases,
     extract_list_skills,
@@ -58,11 +59,19 @@ def _is_requirement_like(phrase: str) -> bool:
     return len(phrase.split()) >= 6
 
 
+def _is_valid_skill_name(skill: str) -> bool:
+    if len(skill) > 45 or len(skill.split()) > 4:
+        return False
+    if skill.lower() in STOPWORDS:
+        return False
+    return True
+
+
 def analyze_resume_vs_job(resume_text: str, job_text: str) -> dict:
     pattern_job = extract_skills(job_text)
     pattern_resume = extract_skills(resume_text)
-    list_job = extract_list_skills(job_text)
-    list_resume = extract_list_skills(resume_text)
+    list_job = [s for s in extract_list_skills(job_text) if _is_valid_skill_name(s)]
+    list_resume = [s for s in extract_list_skills(resume_text) if _is_valid_skill_name(s)]
 
     job_skill_names = merge_skill_sets(pattern_job, list_job)
     resume_skill_names = merge_skill_sets(pattern_resume, list_resume)
