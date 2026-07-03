@@ -42,8 +42,12 @@ class MatchPipeline:
             llm_alignment_score=breakdown.llm_alignment_score,
             matched_skills=comparison.matched_skills,
             missing_skills=comparison.missing_skills,
+            missing_requirements=comparison.missing_requirements,
+            missing_qualifications=comparison.missing_qualifications,
+            missing_experience=comparison.missing_experience,
             strengths=comparison.strengths,
             recommendations=comparison.recommendations,
+            action_items=comparison.action_items,
             summary=comparison.summary,
             metadata={
                 "resume_pages": resume_doc.page_count,

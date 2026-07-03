@@ -1,6 +1,10 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from openai import OpenAIError
 
 from job_matcher.api.routes import health, match
 from job_matcher.core.exceptions import (
@@ -11,12 +15,14 @@ from job_matcher.core.exceptions import (
     PDFParseError,
 )
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Job Matcher API",
-        description="Parse PDF resumes and job descriptions, then semantically compare them with OpenAI.",
-        version="0.1.0",
+        title="Career Aligner API",
+        description="Upload resume and job description PDFs for semantic match analysis.",
+        version="0.2.0",
     )
 
     app.add_middleware(
@@ -29,6 +35,13 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(match.router)
+
+    if STATIC_DIR.is_dir():
+        app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+    @app.get("/", include_in_schema=False)
+    async def home() -> FileResponse:
+        return FileResponse(STATIC_DIR / "index.html")
 
     @app.exception_handler(PDFParseError)
     async def pdf_parse_handler(_: Request, exc: PDFParseError) -> JSONResponse:
@@ -47,6 +60,13 @@ def create_app() -> FastAPI:
     @app.exception_handler(ComparisonError)
     async def comparison_handler(_: Request, exc: ComparisonError) -> JSONResponse:
         return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+    @app.exception_handler(OpenAIError)
+    async def openai_error_handler(_: Request, exc: OpenAIError) -> JSONResponse:
+        return JSONResponse(
+            status_code=502,
+            content={"detail": f"OpenAI API error: {exc}"},
+        )
 
     @app.exception_handler(JobMatcherError)
     async def domain_handler(_: Request, exc: JobMatcherError) -> JSONResponse:

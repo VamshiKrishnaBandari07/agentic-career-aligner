@@ -8,21 +8,32 @@ from job_matcher.core.exceptions import ComparisonError
 from job_matcher.core.models.document import ParsedDocument
 from job_matcher.core.models.match_result import ComparisonResult
 
-COMPARE_PROMPT = """You are an expert technical recruiter. Compare the resume against the job description.
+COMPARE_PROMPT = """You are an expert career coach and technical recruiter.
+Compare the candidate's RESUME against the JOB DESCRIPTION.
 
 Return ONLY valid JSON with this exact schema:
-{
+{{
   "llm_score": <number 0-100>,
-  "matched_skills": [<strings>],
-  "missing_skills": [<strings>],
-  "strengths": [<strings>],
-  "recommendations": [<strings>],
-  "summary": <one paragraph string>
-}
+  "matched_skills": [<skills the resume clearly demonstrates that the job wants>],
+  "missing_skills": [<technical skills, tools, or technologies required by the job but absent or weak on resume>],
+  "missing_requirements": [<non-skill requirements missing: responsibilities, methodologies, soft requirements, domain knowledge>],
+  "missing_qualifications": [<education, degree level, certifications, minimum years of experience not met>],
+  "missing_experience": [<specific work experience types, projects, or achievements the job expects but resume lacks>],
+  "strengths": [<what makes this candidate a good fit>],
+  "recommendations": [<resume improvements tailored to this specific job>],
+  "action_items": [<3-6 concrete steps the candidate should take to improve their fit>],
+  "summary": <2-3 sentences explaining overall fit in encouraging but honest language>
+}}
+
+Rules:
+- Be specific. Quote or paraphrase actual requirements from the job description.
+- List every meaningful gap you find — do not leave arrays empty if gaps exist.
+- Distinguish skills (e.g. Python, AWS) from requirements (e.g. agile teamwork) from qualifications (e.g. MSc required).
+- action_items must be actionable (e.g. "Add a bullet about your NLP capstone project metrics").
 
 Scoring guide:
-- 90-100: Excellent fit, most requirements clearly met
-- 70-89: Strong fit with minor gaps
+- 90-100: Excellent fit
+- 70-89: Strong fit, minor gaps
 - 50-69: Partial fit, notable gaps
 - Below 50: Weak fit
 
@@ -32,6 +43,12 @@ RESUME:
 JOB DESCRIPTION:
 {job}
 """
+
+
+def _as_str_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if item]
 
 
 class OpenAIChat:
@@ -67,9 +84,13 @@ class OpenAIChat:
 
         return ComparisonResult(
             llm_score=float(data.get("llm_score", 0)),
-            matched_skills=list(data.get("matched_skills", [])),
-            missing_skills=list(data.get("missing_skills", [])),
-            strengths=list(data.get("strengths", [])),
-            recommendations=list(data.get("recommendations", [])),
+            matched_skills=_as_str_list(data.get("matched_skills")),
+            missing_skills=_as_str_list(data.get("missing_skills")),
+            missing_requirements=_as_str_list(data.get("missing_requirements")),
+            missing_qualifications=_as_str_list(data.get("missing_qualifications")),
+            missing_experience=_as_str_list(data.get("missing_experience")),
+            strengths=_as_str_list(data.get("strengths")),
+            recommendations=_as_str_list(data.get("recommendations")),
+            action_items=_as_str_list(data.get("action_items")),
             summary=str(data.get("summary", "")),
         )

@@ -21,17 +21,19 @@ python -m venv .venv
 # 2. Install package
 pip install -e ".[dev]"
 
-# 3. Configure OpenAI
+# 3. Configure OpenAI (required for /match)
 copy .env.example .env        # Windows
 # cp .env.example .env        # macOS/Linux
-# Edit .env and set OPENAI_API_KEY
+# Edit .env and set OPENAI_API_KEY=sk-...
 
 # 4. Run server
 job-matcher
 # or: uvicorn job_matcher.main:app --reload
 ```
 
-Open **http://127.0.0.1:8000/docs** for interactive API docs.
+Open **http://127.0.0.1:8000** — upload your resume PDF and job description PDF to get feedback.
+
+API reference: **http://127.0.0.1:8000/docs**
 
 ## API
 

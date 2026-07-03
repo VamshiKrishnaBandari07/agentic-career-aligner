@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, File, UploadFile
 
 from job_matcher.api.deps import get_pdf_parser, get_pipeline, get_settings
 from job_matcher.core.config import Settings
-from job_matcher.core.exceptions import OpenAINotConfiguredError
 from job_matcher.core.pipeline.match_pipeline import MatchPipeline
 from job_matcher.core.schemas.match import MatchResponse, ParseResponse
 from job_matcher.services.pdf.pymupdf_parser import PyMuPDFParser
@@ -42,11 +41,6 @@ async def match_documents(
     settings: Settings = Depends(get_settings),
     pipeline: MatchPipeline = Depends(get_pipeline),
 ) -> MatchResponse:
-    if not settings.openai_configured:
-        raise OpenAINotConfiguredError(
-            "Set OPENAI_API_KEY in .env before calling /match"
-        )
-
     resume_bytes, resume_name = await _read_upload(resume, settings)
     job_bytes, job_name = await _read_upload(job_description, settings)
     return await pipeline.run(resume_bytes, resume_name, job_bytes, job_name)

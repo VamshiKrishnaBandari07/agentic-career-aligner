@@ -26,6 +26,31 @@ def sample_job_pdf() -> bytes:
 
 
 @pytest.mark.asyncio
+async def test_home_page():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/")
+    assert response.status_code == 200
+    assert "Career Aligner" in response.text
+    assert "Analyze Match" in response.text
+
+
+@pytest.mark.asyncio
+async def test_match_requires_openai_key(sample_resume_pdf: bytes, sample_job_pdf: bytes):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/match",
+            files={
+                "resume": ("resume.pdf", io.BytesIO(sample_resume_pdf), "application/pdf"),
+                "job_description": ("job.pdf", io.BytesIO(sample_job_pdf), "application/pdf"),
+            },
+        )
+    assert response.status_code == 503
+    assert "OPENAI_API_KEY" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
 async def test_health_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

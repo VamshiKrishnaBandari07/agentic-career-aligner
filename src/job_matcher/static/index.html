@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Career Aligner — Resume vs Job Match</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface2: #243044;
+      --border: #2d3f5c;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --match: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    header { text-align: center; margin-bottom: 2.5rem; }
+    header h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    header p { color: var(--muted); font-size: 1rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 640px) {
+      .upload-grid { grid-template-columns: 1fr; }
+    }
+    .upload-box {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 1.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-box:hover, .upload-box.dragover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.06);
+    }
+    .upload-box.has-file { border-color: var(--match); border-style: solid; }
+    .upload-box input { display: none; }
+    .upload-box .label { font-weight: 600; margin-bottom: 0.25rem; }
+    .upload-box .hint { font-size: 0.85rem; color: var(--muted); }
+    .upload-box .filename {
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: var(--match);
+      word-break: break-all;
+    }
+    button.analyze {
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.9rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button.analyze:hover:not(:disabled) { background: var(--accent-hover); }
+    button.analyze:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status {
+      text-align: center;
+      padding: 1rem;
+      color: var(--muted);
+      display: none;
+    }
+    .status.show { display: block; }
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-top: 1rem;
+      display: none;
+    }
+    .error.show { display: block; }
+    #results { display: none; }
+    #results.show { display: block; }
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .score-circle {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      font-weight: 800;
+      border: 4px solid var(--accent);
+      flex-shrink: 0;
+    }
+    .score-circle.high { border-color: var(--success); color: var(--success); }
+    .score-circle.mid { border-color: var(--warn); color: var(--warn); }
+    .score-circle.low { border-color: var(--danger); color: var(--danger); }
+    .summary { color: var(--muted); flex: 1; min-width: 200px; }
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 1.25rem 0 0.6rem;
+    }
+    .section-title:first-child { margin-top: 0; }
+    ul.feedback-list { list-style: none; }
+    ul.feedback-list li {
+      padding: 0.55rem 0.75rem;
+      background: var(--surface2);
+      border-radius: 8px;
+      margin-bottom: 0.4rem;
+      font-size: 0.95rem;
+    }
+    ul.feedback-list.missing li { border-left: 3px solid var(--danger); }
+    ul.feedback-list.matched li { border-left: 3px solid var(--success); }
+    ul.feedback-list.tips li { border-left: 3px solid var(--accent); }
+    .empty-note { color: var(--muted); font-style: italic; font-size: 0.9rem; }
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Career Aligner</h1>
+      <p>Upload your resume and a job description PDF — get instant feedback on fit, missing skills, and what to improve.</p>
+    </header>
+
+    <div class="card">
+      <div class="upload-grid">
+        <label class="upload-box" id="resume-box">
+          <input type="file" id="resume" accept=".pdf,application/pdf" />
+          <div class="label">Your Resume</div>
+          <div class="hint">PDF only · drag & drop or click</div>
+          <div class="filename" id="resume-name"></div>
+        </label>
+        <label class="upload-box" id="job-box">
+          <input type="file" id="job" accept=".pdf,application/pdf" />
+          <div class="label">Job Description</div>
+          <div class="hint">PDF only · drag & drop or click</div>
+          <div class="filename" id="job-name"></div>
+        </label>
+      </div>
+      <button class="analyze" id="analyze-btn" disabled>Analyze Match</button>
+      <div class="status" id="status"><span class="spinner"></span>Analyzing with AI… this may take 15–30 seconds</div>
+      <div class="error" id="error"></div>
+    </div>
+
+    <div id="results">
+      <div class="card">
+        <div class="score-row">
+          <div class="score-circle" id="score-circle">—</div>
+          <div>
+            <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem">Overall Match</div>
+            <div class="summary" id="summary"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Matched skills</div>
+        <ul class="feedback-list matched" id="matched-skills"></ul>
+
+        <div class="section-title">Missing skills</div>
+        <ul class="feedback-list missing" id="missing-skills"></ul>
+
+        <div class="section-title">Missing requirements</div>
+        <ul class="feedback-list missing" id="missing-requirements"></ul>
+
+        <div class="section-title">Missing qualifications</div>
+        <ul class="feedback-list missing" id="missing-qualifications"></ul>
+
+        <div class="section-title">Missing experience</div>
+        <ul class="feedback-list missing" id="missing-experience"></ul>
+
+        <div class="section-title">Your strengths</div>
+        <ul class="feedback-list matched" id="strengths"></ul>
+
+        <div class="section-title">Recommendations</div>
+        <ul class="feedback-list tips" id="recommendations"></ul>
+
+        <div class="section-title">Action items</div>
+        <ul class="feedback-list tips" id="action-items"></ul>
+      </div>
+    </div>
+
+    <footer>
+      <a href="/docs">API docs</a> · <a href="/health">Health check</a>
+    </footer>
+  </div>
+
+  <script>
+    const resumeInput = document.getElementById("resume");
+    const jobInput = document.getElementById("job");
+    const resumeBox = document.getElementById("resume-box");
+    const jobBox = document.getElementById("job-box");
+    const analyzeBtn = document.getElementById("analyze-btn");
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+    const resultsEl = document.getElementById("results");
+
+    function setupDrop(box, input, nameEl) {
+      ["dragenter", "dragover"].forEach((ev) => {
+        box.addEventListener(ev, (e) => { e.preventDefault(); box.classList.add("dragover"); });
+      });
+      ["dragleave", "drop"].forEach((ev) => {
+        box.addEventListener(ev, (e) => { e.preventDefault(); box.classList.remove("dragover"); });
+      });
+      box.addEventListener("drop", (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === "application/pdf") {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+          onFileSelected(input, box, nameEl);
+        }
+      });
+      input.addEventListener("change", () => onFileSelected(input, box, nameEl));
+    }
+
+    function onFileSelected(input, box, nameEl) {
+      const file = input.files[0];
+      if (file) {
+        box.classList.add("has-file");
+        nameEl.textContent = file.name;
+      } else {
+        box.classList.remove("has-file");
+        nameEl.textContent = "";
+      }
+      analyzeBtn.disabled = !(resumeInput.files[0] && jobInput.files[0]);
+    }
+
+    setupDrop(resumeBox, resumeInput, document.getElementById("resume-name"));
+    setupDrop(jobBox, jobInput, document.getElementById("job-name"));
+
+    function renderList(el, items, emptyText) {
+      el.innerHTML = "";
+      if (!items || items.length === 0) {
+        const li = document.createElement("li");
+        li.className = "empty-note";
+        li.textContent = emptyText;
+        el.appendChild(li);
+        return;
+      }
+      items.forEach((text) => {
+        const li = document.createElement("li");
+        li.textContent = text;
+        el.appendChild(li);
+      });
+    }
+
+    function scoreClass(score) {
+      if (score >= 70) return "high";
+      if (score >= 50) return "mid";
+      return "low";
+    }
+
+    analyzeBtn.addEventListener("click", async () => {
+      errorEl.classList.remove("show");
+      resultsEl.classList.remove("show");
+      statusEl.classList.add("show");
+      analyzeBtn.disabled = true;
+
+      const form = new FormData();
+      form.append("resume", resumeInput.files[0]);
+      form.append("job_description", jobInput.files[0]);
+
+      try {
+        const res = await fetch("/match", { method: "POST", body: form });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Analysis failed");
+
+        const score = Math.round(data.overall_score);
+        const circle = document.getElementById("score-circle");
+        circle.textContent = score + "%";
+        circle.className = "score-circle " + scoreClass(score);
+        document.getElementById("summary").textContent = data.summary || "";
+
+        renderList(document.getElementById("matched-skills"), data.matched_skills, "No matched skills identified.");
+        renderList(document.getElementById("missing-skills"), data.missing_skills, "No missing skills — great coverage!");
+        renderList(document.getElementById("missing-requirements"), data.missing_requirements, "No other requirements missing.");
+        renderList(document.getElementById("missing-qualifications"), data.missing_qualifications, "Qualifications look aligned.");
+        renderList(document.getElementById("missing-experience"), data.missing_experience, "Experience areas look covered.");
+        renderList(document.getElementById("strengths"), data.strengths, "—");
+        renderList(document.getElementById("recommendations"), data.recommendations, "—");
+        renderList(document.getElementById("action-items"), data.action_items, "—");
+
+        resultsEl.classList.add("show");
+        resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add("show");
+      } finally {
+        statusEl.classList.remove("show");
+        analyzeBtn.disabled = !(resumeInput.files[0] && jobInput.files[0]);
+      }
+    });
+  </script>
+</body>
+</html>
