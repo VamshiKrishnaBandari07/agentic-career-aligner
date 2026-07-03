@@ -36,6 +36,8 @@
       margin-bottom: 0.5rem;
     }
     header p { color: var(--muted); font-size: 1rem; }
+    header p.tagline { max-width: 640px; margin: 0 auto; line-height: 1.6; }
+    header p.tagline strong { color: var(--match); }
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -200,11 +202,15 @@
     .section-title:first-child { margin-top: 0; }
     ul.feedback-list { list-style: none; }
     ul.feedback-list li {
-      padding: 0.55rem 0.75rem;
+      padding: 0.65rem 0.85rem;
       background: var(--surface2);
       border-radius: 8px;
-      margin-bottom: 0.4rem;
-      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+    ul.feedback-list.detail li {
+      font-size: 0.9rem;
     }
     ul.feedback-list.missing li { border-left: 3px solid var(--danger); }
     ul.feedback-list.matched li { border-left: 3px solid var(--success); }
@@ -223,19 +229,12 @@
   <div class="wrap">
     <header>
       <h1>Career Aligner</h1>
-      <p>Upload your resume PDF and paste the job description & company info — get feedback on fit, missing skills, and what to improve.</p>
+      <p class="tagline">I built this for my own job hunt — now it's yours. Upload your CV, paste any job description, get detailed feedback. <strong>Free. Local. Private.</strong></p>
     </header>
 
-    <div class="setup-banner" id="setup-banner">
-      <strong>OpenAI mode needs a paid API key</strong>
-      You're in <code>MATCH_PROVIDER=free</code> mode by default (no billing).
-      To use AI analysis, set <code>MATCH_PROVIDER=openai</code> and add billing at
-      <a href="https://platform.openai.com/account/billing" target="_blank" rel="noopener" style="color:#93c5fd">OpenAI billing</a>.
-    </div>
     <div class="setup-banner" id="free-banner" style="border-color:var(--match);color:#6ee7b7;background:rgba(16,185,129,0.1)">
-      <strong>Free local matching active</strong>
-      Analysis runs on your machine — no OpenAI credits needed. Powered by local skill extraction
-      (inspired by <a href="https://github.com/hiteshchoudhary/apihub" target="_blank" rel="noopener" style="color:#93c5fd">FreeAPI.app</a> learning stack).
+      <strong>Runs 100% on your computer</strong>
+      No subscription · No API key · No account · Your CV never leaves this machine
     </div>
 
     <div class="card">
@@ -263,7 +262,7 @@
       </div>
 
       <button class="analyze" id="analyze-btn" disabled>Analyze Match</button>
-      <div class="status" id="status"><span class="spinner"></span>Analyzing with AI… this may take 15–30 seconds</div>
+      <div class="status" id="status"><span class="spinner"></span>Analyzing your resume against the job…</div>
       <div class="error" id="error"></div>
     </div>
 
@@ -297,6 +296,9 @@
         <div class="section-title">Your strengths</div>
         <ul class="feedback-list matched" id="strengths"></ul>
 
+        <div class="section-title">Suggested resume changes</div>
+        <ul class="feedback-list tips detail" id="resume-suggestions"></ul>
+
         <div class="section-title">Recommendations</div>
         <ul class="feedback-list tips" id="recommendations"></ul>
 
@@ -306,7 +308,10 @@
     </div>
 
     <footer>
-      <a href="/docs">API docs</a> · <a href="/health">Health check</a>
+      Built by <a href="https://github.com/VamshiKrishnaBandari07" target="_blank" rel="noopener">Vamshi Krishna Bandari</a>
+      · <a href="https://github.com/VamshiKrishnaBandari07/agentic-career-aligner" target="_blank" rel="noopener">GitHub</a>
+      · <a href="/docs">API</a>
+      · MIT License · Free forever
     </footer>
   </div>
 
@@ -319,19 +324,14 @@
     const statusEl = document.getElementById("status");
     const errorEl = document.getElementById("error");
     const resultsEl = document.getElementById("results");
-    const setupBanner = document.getElementById("setup-banner");
     const freeBanner = document.getElementById("free-banner");
 
     fetch("/health")
       .then((r) => r.json())
       .then((data) => {
-        if (data.free_mode) {
-          freeBanner.classList.add("show");
-        } else if (!data.openai_configured) {
-          setupBanner.classList.add("show");
-        }
+        if (data.free_mode) freeBanner.classList.add("show");
       })
-      .catch(() => {});
+      .catch(() => freeBanner.classList.add("show"));
 
     function canAnalyze() {
       return resumeInput.files[0] && jobDescriptionInput.value.trim().length > 0;
@@ -420,12 +420,6 @@
         }
         if (!res.ok) {
           const msg = data.detail || raw || "Analysis failed";
-          if (res.status === 503 && msg.includes("OPENAI_API_KEY")) {
-            setupBanner.classList.add("show");
-            throw new Error(
-              "OpenAI API key not set. Edit the .env file in your project folder, add your key, then restart the server."
-            );
-          }
           throw new Error(msg);
         }
 
@@ -435,12 +429,18 @@
         circle.className = "score-circle " + scoreClass(score);
         document.getElementById("summary").textContent = data.summary || "";
 
-        renderList(document.getElementById("matched-skills"), data.matched_skills, "No matched skills identified.");
-        renderList(document.getElementById("missing-skills"), data.missing_skills, "No missing skills — great coverage!");
-        renderList(document.getElementById("missing-requirements"), data.missing_requirements, "No other requirements missing.");
-        renderList(document.getElementById("missing-qualifications"), data.missing_qualifications, "Qualifications look aligned.");
-        renderList(document.getElementById("missing-experience"), data.missing_experience, "Experience areas look covered.");
+        renderList(document.getElementById("matched-skills"), data.matched_skills,
+          "No clear skill matches yet — add a Skills section to your resume and paste a detailed job description.");
+        renderList(document.getElementById("missing-skills"), data.missing_skills,
+          "No missing skills detected from this job text.");
+        renderList(document.getElementById("missing-requirements"), data.missing_requirements,
+          "No specific requirement gaps detected — try pasting full Responsibilities / Requirements bullets.");
+        renderList(document.getElementById("missing-qualifications"), data.missing_qualifications,
+          "No qualification gaps detected for degree, certs, or years of experience.");
+        renderList(document.getElementById("missing-experience"), data.missing_experience,
+          "No experience gaps flagged from the job text.");
         renderList(document.getElementById("strengths"), data.strengths, "—");
+        renderList(document.getElementById("resume-suggestions"), data.resume_suggestions, "No extra suggestions — review gaps above.");
         renderList(document.getElementById("recommendations"), data.recommendations, "—");
         renderList(document.getElementById("action-items"), data.action_items, "—");
 

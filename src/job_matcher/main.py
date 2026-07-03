@@ -24,7 +24,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Career Aligner API",
         description="Upload resume and job description PDFs for semantic match analysis.",
-        version="0.2.0",
+        version="1.0.0",
     )
 
     app.add_middleware(

@@ -12,4 +12,5 @@ class ComparisonResult:
     strengths: list[str] = field(default_factory=list)
     recommendations: list[str] = field(default_factory=list)
     action_items: list[str] = field(default_factory=list)
+    resume_suggestions: list[str] = field(default_factory=list)
     summary: str = ""

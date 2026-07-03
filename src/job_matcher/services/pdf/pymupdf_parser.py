@@ -20,6 +20,15 @@ class PyMuPDFParser:
                 parts.append(page.get_text("text"))
             raw_text = "\n".join(parts)
             page_count = len(doc)
+
+            if len(clean_pdf_text(raw_text)) < 80:
+                fallback_parts: list[str] = []
+                for page in doc:
+                    for block in page.get_text("blocks"):
+                        if isinstance(block, (list, tuple)) and len(block) >= 5:
+                            fallback_parts.append(str(block[4]))
+                if fallback_parts:
+                    raw_text = "\n".join(fallback_parts)
         except Exception as exc:
             raise PDFParseError(f"Failed to read PDF '{filename}': {exc}") from exc
         finally:

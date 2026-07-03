@@ -33,5 +33,8 @@ class MatchResponse(BaseModel):
     strengths: list[str] = Field(description="What you already do well for this role")
     recommendations: list[str] = Field(description="How to improve your resume for this job")
     action_items: list[str] = Field(description="Concrete next steps to close the gap")
+    resume_suggestions: list[str] = Field(
+        description="Specific edits to make on your resume for this job"
+    )
     summary: str = Field(description="Overall fit summary in plain language")
     metadata: dict

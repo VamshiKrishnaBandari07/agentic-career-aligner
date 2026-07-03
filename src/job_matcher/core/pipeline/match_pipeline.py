@@ -52,6 +52,7 @@ class MatchPipeline:
             strengths=comparison.strengths,
             recommendations=comparison.recommendations,
             action_items=comparison.action_items,
+            resume_suggestions=comparison.resume_suggestions,
             summary=comparison.summary,
             metadata={
                 "resume_pages": resume_doc.page_count,

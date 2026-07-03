@@ -33,7 +33,7 @@ SKILL_PATTERNS: list[tuple[str, str]] = [
     ("TensorFlow", r"\btensorflow\b"),
     ("NLP", r"\b(nlp|natural language processing)\b"),
     ("Computer Vision", r"\bcomputer vision\b"),
-    ("LLM", r"\b(llm|large language model)\b"),
+    ("LLM", r"\b(llm|large language model|gpt|generative ai)\b"),
     ("OpenAI", r"\bopenai\b"),
     ("RAG", r"\brag\b"),
     ("Git", r"\bgit\b"),
@@ -54,6 +54,9 @@ SKILL_PATTERNS: list[tuple[str, str]] = [
     ("Communication", r"\bcommunication skills?\b"),
     ("Leadership", r"\bleadership\b"),
     ("Teamwork", r"\bteam\s*work\b"),
+    ("Data Analysis", r"\bdata analys(is|t)\b"),
+    ("Statistics", r"\bstatistics\b"),
+    ("MLOps", r"\bmlops\b"),
 ]
 
 DEGREE_PATTERNS: list[tuple[str, str]] = [
@@ -63,14 +66,27 @@ DEGREE_PATTERNS: list[tuple[str, str]] = [
     ("MBA", r"\bmba\b"),
 ]
 
+CERTIFICATION_PATTERNS: list[tuple[str, str]] = [
+    ("AWS Certified", r"\baws\s+certified\b"),
+    ("Azure Certified", r"\bazure\s+certified\b"),
+    ("Google Cloud Certified", r"\bgoogle cloud\s+certified\b"),
+    ("PMP", r"\bpmp\b"),
+]
+
 EXPERIENCE_YEAR_PATTERN = re.compile(
     r"(\d+)\+?\s*(?:years?|yrs?)\s+(?:of\s+)?(?:experience|exp)",
     re.IGNORECASE,
 )
 
 REQUIREMENT_LINE_PATTERN = re.compile(
-    r"(?:required|must have|should have|essential|mandatory|proficient in|experience with|knowledge of)",
+    r"(?:required|must have|should have|essential|mandatory|proficient in|experience with|knowledge of|preferred|nice to have|responsible for)",
     re.IGNORECASE,
+)
+
+BULLET_LINE_PATTERN = re.compile(r"^[\s•\-\*]+(.+)$", re.MULTILINE)
+SECTION_HEADER_PATTERN = re.compile(
+    r"^(requirements?|responsibilities|qualifications?|what you(?:'|')?ll do|key skills?|about the role)\s*:?\s*$",
+    re.IGNORECASE | re.MULTILINE,
 )
 
 
@@ -91,6 +107,14 @@ def extract_degrees(text: str) -> list[str]:
     return found
 
 
+def extract_certifications(text: str) -> list[str]:
+    found: list[str] = []
+    for name, pattern in CERTIFICATION_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            found.append(name)
+    return found
+
+
 def extract_years_required(text: str) -> int | None:
     years: list[int] = []
     for match in EXPERIENCE_YEAR_PATTERN.finditer(text):
@@ -100,13 +124,51 @@ def extract_years_required(text: str) -> int | None:
 
 def extract_requirement_lines(text: str) -> list[str]:
     lines: list[str] = []
+    seen: set[str] = set()
+
+    for bullet in BULLET_LINE_PATTERN.findall(text):
+        line = bullet.strip()
+        if len(line) >= 12 and line.lower() not in seen:
+            lines.append(line)
+            seen.add(line.lower())
+
     for raw_line in text.splitlines():
         line = raw_line.strip(" •-\t")
-        if len(line) < 12:
+        if len(line) < 12 or line.lower() in seen:
             continue
         if REQUIREMENT_LINE_PATTERN.search(line):
             lines.append(line)
-    return lines[:12]
+            seen.add(line.lower())
+
+    return lines[:20]
+
+
+def extract_job_bullets(text: str) -> list[str]:
+    bullets = [m.strip() for m in BULLET_LINE_PATTERN.findall(text) if len(m.strip()) >= 15]
+    if bullets:
+        return bullets[:15]
+    return [ln.strip() for ln in text.splitlines() if len(ln.strip()) >= 20][:15]
+
+
+def find_job_context(job_text: str, term: str, max_len: int = 140) -> str:
+    pattern = re.compile(re.escape(term), re.IGNORECASE)
+    for line in job_text.splitlines():
+        if pattern.search(line):
+            cleaned = line.strip()
+            if len(cleaned) > max_len:
+                return cleaned[: max_len - 1] + "…"
+            return cleaned
+    for sentence in re.split(r"[.!?]\s+", job_text):
+        if pattern.search(sentence):
+            cleaned = sentence.strip()
+            if len(cleaned) > max_len:
+                return cleaned[: max_len - 1] + "…"
+            return cleaned
+    return ""
+
+
+def resume_mentions(resume_text: str, phrase: str) -> bool:
+    return phrase.lower() in resume_text.lower()
 
 
 def resume_years_hint(text: str) -> int | None:

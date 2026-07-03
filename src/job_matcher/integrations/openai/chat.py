@@ -28,15 +28,17 @@ Return ONLY valid JSON with this exact schema:
   "missing_experience": [<specific work experience types, projects, or achievements the job expects but resume lacks>],
   "strengths": [<what makes this candidate a good fit>],
   "recommendations": [<resume improvements tailored to this specific job>],
-  "action_items": [<3-6 concrete steps the candidate should take to improve their fit>],
-  "summary": <2-3 sentences explaining overall fit in encouraging but honest language>
+  "action_items": [<5-10 concrete steps with specific resume edits>],
+  "resume_suggestions": [<8-12 specific lines/sections to add or rewrite on the resume, with example bullet wording>],
+  "summary": <3-4 sentences explaining overall fit, main gaps, and priority fixes in encouraging but honest language>
 }}
 
 Rules:
-- Be specific. Quote or paraphrase actual requirements from the job description.
-- List every meaningful gap you find — do not leave arrays empty if gaps exist.
-- Distinguish skills (e.g. Python, AWS) from requirements (e.g. agile teamwork) from qualifications (e.g. MSc required).
-- action_items must be actionable (e.g. "Add a bullet about your NLP capstone project metrics").
+- Be specific and descriptive. Every missing item must explain WHAT is missing, WHY it matters for this job, and HOW to fix it on the resume.
+- Quote or paraphrase actual requirements from the job description in missing_* fields.
+- missing_skills entries must be full sentences, not single words (e.g. "PyTorch — required for model training in this role; not on resume. Add a project bullet describing…").
+- resume_suggestions must include example bullet text the candidate can adapt.
+- List every meaningful gap — do not leave arrays empty if gaps exist.
 
 Scoring guide:
 - 90-100: Excellent fit
@@ -108,5 +110,6 @@ class OpenAIChat:
             strengths=_as_str_list(data.get("strengths")),
             recommendations=_as_str_list(data.get("recommendations")),
             action_items=_as_str_list(data.get("action_items")),
+            resume_suggestions=_as_str_list(data.get("resume_suggestions")),
             summary=str(data.get("summary", "")),
         )

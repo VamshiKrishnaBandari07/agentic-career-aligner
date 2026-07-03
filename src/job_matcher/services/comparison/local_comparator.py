@@ -1,99 +1,155 @@
 from job_matcher.core.models.document import ParsedDocument
 from job_matcher.core.models.match_result import ComparisonResult
-from job_matcher.services.skills.skill_extractor import (
-    extract_degrees,
-    extract_requirement_lines,
-    extract_skills,
-    extract_years_required,
-    resume_years_hint,
+from job_matcher.services.analysis.gap_analyzer import analyze_resume_vs_job
+from job_matcher.services.feedback.resume_suggestions import (
+    build_action_items,
+    build_recommendations,
+    build_resume_suggestions,
+    describe_matched_skill,
+    describe_missing_experience,
+    describe_missing_qualification,
+    describe_missing_requirement,
+    describe_missing_skill,
 )
 
 
 class LocalComparator:
-    """Rule-based resume vs job comparison — free, runs locally."""
+    """Rule-based resume vs job comparison with detailed gap analysis."""
 
     async def compare(
         self, resume: ParsedDocument, job: ParsedDocument
     ) -> ComparisonResult:
-        resume_skills = set(extract_skills(resume.text))
-        job_skills = set(extract_skills(job.text))
+        resume_text = resume.text
+        job_text = job.text
+        analysis = analyze_resume_vs_job(resume_text, job_text)
 
-        matched_skills = sorted(job_skills & resume_skills)
-        missing_skills = sorted(job_skills - resume_skills)
+        matched_raw = analysis["matched_raw"]
+        missing_raw = analysis["missing_raw"]
 
-        job_degrees = set(extract_degrees(job.text))
-        resume_degrees = set(extract_degrees(resume.text))
-        missing_qualifications = sorted(job_degrees - resume_degrees)
+        matched_skills = [describe_matched_skill(s, job_text) for s in matched_raw]
+        missing_skills = [describe_missing_skill(s, job_text) for s in missing_raw]
 
-        job_years = extract_years_required(job.text)
-        resume_years = resume_years_hint(resume.text)
-        if job_years and (resume_years is None or resume_years < job_years):
+        missing_qualifications: list[str] = []
+        for degree in sorted(analysis["job_degrees"] - analysis["resume_degrees"]):
             missing_qualifications.append(
-                f"Job asks for {job_years}+ years experience"
-                + (f" (resume shows ~{resume_years} yrs)" if resume_years else "")
+                describe_missing_qualification(
+                    f"Degree: {degree} — mentioned in job requirements but not found on resume"
+                )
+            )
+        for cert in sorted(analysis["job_certs"] - analysis["resume_certs"]):
+            missing_qualifications.append(
+                describe_missing_qualification(
+                    f"Certification: {cert} — preferred or required by employer"
+                )
             )
 
-        missing_requirements: list[str] = []
-        missing_experience: list[str] = []
-        resume_lower = resume.text.lower()
+        job_years = analysis["job_years"]
+        resume_years = analysis["resume_years"]
+        if job_years and (resume_years is None or resume_years < job_years):
+            gap = (
+                f"Experience: job requires ~{job_years}+ years"
+                + (
+                    f", resume suggests ~{resume_years} years"
+                    if resume_years
+                    else ", not stated on resume"
+                )
+            )
+            missing_qualifications.append(describe_missing_qualification(gap))
 
-        for line in extract_requirement_lines(job.text):
-            key = _line_keywords(line)
-            if not key:
-                continue
-            if key in resume_lower:
-                continue
-            bucket = missing_experience if "experience" in line.lower() else missing_requirements
-            if line not in bucket:
-                bucket.append(line)
+        missing_requirements = [
+            describe_missing_requirement(line) for line in analysis["missing_requirements"]
+        ]
+        missing_experience = [
+            describe_missing_experience(line) for line in analysis["missing_experience"]
+        ]
 
         strengths: list[str] = []
-        if matched_skills:
+        if matched_raw:
             strengths.append(
-                f"Resume demonstrates {len(matched_skills)} job-relevant skills: "
-                + ", ".join(matched_skills[:6])
-                + ("…" if len(matched_skills) > 6 else "")
+                f"You align on {len(matched_raw)} skill(s)/keyword(s): {', '.join(matched_raw[:8])}"
+                f"{'…' if len(matched_raw) > 8 else ''}. "
+                "Keep these prominent in your summary and most recent role."
             )
-        if resume_degrees & job_degrees:
+        for req in analysis["covered_requirements"][:4]:
             strengths.append(
-                f"Education alignment: {', '.join(sorted(resume_degrees & job_degrees))}"
+                f"Requirement covered: \"{req[:100]}{'…' if len(req) > 100 else ''}\" "
+                "— already reflected on your resume."
+            )
+        if analysis["resume_degrees"] & analysis["job_degrees"]:
+            strengths.append(
+                f"Education match: {', '.join(sorted(analysis['resume_degrees'] & analysis['job_degrees']))}."
+            )
+        if analysis["extra_resume_skills"][:5]:
+            strengths.append(
+                f"Bonus skills on your resume (transferable): {', '.join(analysis['extra_resume_skills'][:5])}."
             )
 
-        recommendations: list[str] = []
-        action_items: list[str] = []
+        if analysis["resume_word_count"] < 25:
+            strengths = [
+                "⚠ Very little text was extracted from your resume PDF. "
+                "Export a text-based PDF (not a scanned image) or add more content, then re-upload."
+            ]
 
-        for skill in missing_skills[:8]:
-            recommendations.append(f"Add {skill} to your skills section if you have experience with it.")
-            action_items.append(f"Highlight a project or coursework that used {skill}.")
+        missing_req_lines = analysis["missing_requirements"] + analysis["missing_experience"]
+        recommendations = build_recommendations(
+            missing_raw, missing_req_lines, matched_raw, job_text
+        )
+        action_items = build_action_items(missing_raw, missing_qualifications)
+        resume_suggestions = build_resume_suggestions(
+            missing_raw,
+            missing_req_lines,
+            missing_qualifications,
+            missing_experience,
+            job_text,
+        )
 
-        for req in missing_requirements[:4]:
-            recommendations.append(f"Address this job requirement on your resume: {req[:120]}")
-            action_items.append(f"Add a bullet point covering: {req[:80]}…")
+        if not matched_raw and not missing_raw and analysis["job_word_count"] > 10:
+            recommendations.insert(
+                0,
+                "Paste the full job description including Requirements and Responsibilities sections. "
+                "Use bullet points or comma-separated skills for best detection.",
+            )
+            resume_suggestions.insert(
+                0,
+                "Ensure your resume PDF lists a Skills section and bullet points with technologies used "
+                "(e.g. 'Built API in Python/FastAPI').",
+            )
 
-        if not recommendations:
-            recommendations.append("Tailor your summary to mirror the job title and top requirements.")
+        total_job_signals = max(len(matched_raw) + len(missing_raw), 1)
+        skill_score = len(matched_raw) / total_job_signals * 100
+        gap_penalty = min(
+            40,
+            len(missing_raw) * 3
+            + len(missing_requirements) * 2
+            + len(missing_qualifications) * 3,
+        )
+        overlap_boost = analysis["text_overlap"] * 15
+        llm_score = max(10.0, min(95.0, skill_score - gap_penalty + 25 + overlap_boost))
 
-        if not action_items:
-            action_items.append("Quantify achievements (metrics, impact) for your top 3 resume bullets.")
-
-        skill_score = (len(matched_skills) / len(job_skills) * 100) if job_skills else 55.0
-        gap_penalty = min(35, len(missing_skills) * 4 + len(missing_requirements) * 2)
-        llm_score = max(15.0, min(95.0, skill_score - gap_penalty + 20))
+        gap_count = (
+            len(missing_raw)
+            + len(missing_requirements)
+            + len(missing_qualifications)
+            + len(missing_experience)
+        )
 
         if llm_score >= 75:
             summary = (
-                "Strong alignment on core skills. Focus on tailoring bullets to the exact role "
-                "and filling any remaining gaps below."
+                f"Strong fit — {len(matched_raw)} matches found, {gap_count} gap(s) to address. "
+                f"Text overlap with the job posting: {int(analysis['text_overlap'] * 100)}%. "
+                "Review suggested resume changes below."
             )
         elif llm_score >= 50:
             summary = (
-                "Partial fit — you match some requirements but have notable gaps. "
-                "Use the missing items below to improve your resume for this role."
+                f"Moderate fit — {len(matched_raw)} matches, {gap_count} gap(s). "
+                f"Overlap: {int(analysis['text_overlap'] * 100)}%. "
+                "Each missing item below includes a specific fix for your resume."
             )
         else:
             summary = (
-                "Limited overlap with this job posting. Consider upskilling in the missing areas "
-                "or targeting roles that better match your current profile."
+                f"Gaps detected — {len(matched_raw)} matches vs {gap_count} missing area(s). "
+                f"Overlap: {int(analysis['text_overlap'] * 100)}%. "
+                "Prioritize the missing skills and requirements sections below."
             )
 
         return ComparisonResult(
@@ -103,16 +159,12 @@ class LocalComparator:
             missing_requirements=missing_requirements,
             missing_qualifications=missing_qualifications,
             missing_experience=missing_experience,
-            strengths=strengths or ["Review matched skills and expand relevant project details."],
-            recommendations=recommendations[:8],
-            action_items=action_items[:6],
+            strengths=strengths
+            or [
+                "Add a Skills section and bullet-point experience to your resume for better analysis."
+            ],
+            recommendations=recommendations,
+            action_items=action_items,
+            resume_suggestions=resume_suggestions,
             summary=summary,
         )
-
-
-def _line_keywords(line: str) -> str:
-    cleaned = line.lower()
-    for prefix in ("required:", "must have:", "-", "•"):
-        if cleaned.startswith(prefix):
-            cleaned = cleaned[len(prefix) :].strip()
-    return cleaned[:80]

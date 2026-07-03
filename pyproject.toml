@@ -3,11 +3,14 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "job-matcher"
-version = "0.1.0"
-description = "PDF-based resume and job description semantic matching with OpenAI"
+name = "career-aligner"
+version = "1.0.0"
+description = "Free local CV review — upload resume, paste job description, get gap analysis and resume suggestions. No subscription."
 readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Vamshi Krishna Bandari" }]
+keywords = ["resume", "cv", "job-matching", "career", "fastapi", "open-source", "free"]
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
@@ -19,6 +22,11 @@ dependencies = [
     "tenacity>=8.2.0",
     "httpx>=0.27.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/VamshiKrishnaBandari07/agentic-career-aligner"
+Repository = "https://github.com/VamshiKrishnaBandari07/agentic-career-aligner"
+Issues = "https://github.com/VamshiKrishnaBandari07/agentic-career-aligner/issues"
 
 [project.optional-dependencies]
 dev = [

@@ -77,7 +77,9 @@ async def test_free_match_works_without_openai(
     data = response.json()
     assert 0 <= data["overall_score"] <= 100
     assert data["metadata"]["match_provider"] == "free_local"
-    assert "Python" in data["matched_skills"] or "FastAPI" in data["matched_skills"]
+    assert len(data["resume_suggestions"]) >= 1
+    assert any("Python" in s for s in data["matched_skills"])
+    assert len(data["missing_skills"][0]) > 20 if data["missing_skills"] else True
 
 
 @pytest.mark.asyncio
