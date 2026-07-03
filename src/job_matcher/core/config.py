@@ -1,9 +1,21 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _resolve_env_file() -> Path:
+    candidates = [Path.cwd() / ".env", PROJECT_ROOT / ".env"]
+    for path in candidates:
+        if path.is_file():
+            return path
+    return PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_resolve_env_file(),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -23,4 +35,5 @@ class Settings(BaseSettings):
 
     @property
     def openai_configured(self) -> bool:
-        return bool(self.openai_api_key and self.openai_api_key != "sk-your-key-here")
+        key = self.openai_api_key.strip()
+        return bool(key) and key != "sk-your-key-here" and key.startswith("sk-")

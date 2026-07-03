@@ -147,6 +147,24 @@
       display: none;
     }
     .error.show { display: block; }
+    .setup-banner {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid var(--warn);
+      color: #fcd34d;
+      padding: 1rem 1.1rem;
+      border-radius: 10px;
+      margin-bottom: 1.25rem;
+      font-size: 0.92rem;
+      display: none;
+    }
+    .setup-banner.show { display: block; }
+    .setup-banner strong { display: block; margin-bottom: 0.35rem; }
+    .setup-banner code {
+      background: rgba(0,0,0,0.25);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
     #results { display: none; }
     #results.show { display: block; }
     .score-row {
@@ -207,6 +225,13 @@
       <h1>Career Aligner</h1>
       <p>Upload your resume PDF and paste the job description & company info — get feedback on fit, missing skills, and what to improve.</p>
     </header>
+
+    <div class="setup-banner" id="setup-banner">
+      <strong>OpenAI API key required</strong>
+      Open <code>.env</code> in the project folder, replace <code>sk-your-key-here</code> with your real key from
+      <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style="color:#93c5fd">platform.openai.com/api-keys</a>,
+      then restart the server.
+    </div>
 
     <div class="card">
       <div class="upload-grid">
@@ -289,6 +314,14 @@
     const statusEl = document.getElementById("status");
     const errorEl = document.getElementById("error");
     const resultsEl = document.getElementById("results");
+    const setupBanner = document.getElementById("setup-banner");
+
+    fetch("/health")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.openai_configured) setupBanner.classList.add("show");
+      })
+      .catch(() => {});
 
     function canAnalyze() {
       return resumeInput.files[0] && jobDescriptionInput.value.trim().length > 0;
@@ -369,7 +402,16 @@
       try {
         const res = await fetch("/match", { method: "POST", body: form });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Analysis failed");
+        if (!res.ok) {
+          const msg = data.detail || "Analysis failed";
+          if (res.status === 503 && msg.includes("OPENAI_API_KEY")) {
+            setupBanner.classList.add("show");
+            throw new Error(
+              "OpenAI API key not set. Edit the .env file in your project folder, add your key, then restart the server."
+            );
+          }
+          throw new Error(msg);
+        }
 
         const score = Math.round(data.overall_score);
         const circle = document.getElementById("score-circle");

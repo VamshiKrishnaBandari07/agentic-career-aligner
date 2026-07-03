@@ -1,5 +1,3 @@
-from functools import lru_cache
-
 from fastapi import Depends, Form
 
 from job_matcher.core.config import Settings
@@ -8,7 +6,6 @@ from job_matcher.core.pipeline.match_pipeline import MatchPipeline, build_pipeli
 from job_matcher.services.pdf.pymupdf_parser import PyMuPDFParser
 
 
-@lru_cache
 def get_settings() -> Settings:
     return Settings()
 
@@ -30,6 +27,7 @@ def get_pipeline(
 ) -> MatchPipeline:
     if not settings.openai_configured:
         raise OpenAINotConfiguredError(
-            "Set OPENAI_API_KEY in .env before calling /match"
+            "OpenAI API key not set. Edit .env in the project folder, set OPENAI_API_KEY=sk-... "
+            "from https://platform.openai.com/api-keys then restart the server."
         )
     return build_pipeline(settings)
