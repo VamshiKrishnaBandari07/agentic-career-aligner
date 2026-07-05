@@ -154,7 +154,7 @@ Python · FastAPI · PyMuPDF · Pydantic · NumPy · Uvicorn · OpenAI (optional
 
 **Vamshi Krishna Bandari** — MSc Artificial Intelligence
 
-[GitHub](https://github.com/VamshiKrishnaBandari07) · [LinkedIn post templates](LINKEDIN.md)
+[GitHub](https://github.com/VamshiKrishnaBandari07)
 
 ---
 
