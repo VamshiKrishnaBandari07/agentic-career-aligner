@@ -13,7 +13,9 @@ def health(settings: Settings = Depends(get_settings)) -> HealthResponse:
     return HealthResponse(
         openai_configured=settings.openai_configured,
         match_provider=settings.match_provider,
-        free_mode=settings.uses_free_local,
+        free_mode=settings.uses_free_local or not settings.openai_configured,
+        serve_ui=settings.serve_ui,
+        ready=True,
     )
 
 

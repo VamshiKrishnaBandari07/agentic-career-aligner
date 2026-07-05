@@ -6,6 +6,8 @@ class HealthResponse(BaseModel):
     openai_configured: bool
     match_provider: str
     free_mode: bool
+    serve_ui: bool = False
+    ready: bool = True
 
 
 class ParseResponse(BaseModel):

@@ -2,12 +2,13 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAIError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from job_matcher.api.routes import health, match
+from job_matcher.core.config import Settings
 from job_matcher.core.exceptions import (
     ComparisonError,
     EmptyTextError,
@@ -23,7 +24,11 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Career Aligner API",
-        description="Upload resume and job description PDFs for semantic match analysis.",
+        description=(
+            "AI-powered resume vs job-description matching. "
+            "POST /match with a resume PDF and pasted job text. "
+            "Requires OPENAI_API_KEY (default). Set MATCH_PROVIDER=free for local-only mode."
+        ),
         version="1.0.0",
     )
 
@@ -41,9 +46,12 @@ def create_app() -> FastAPI:
     if STATIC_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-    @app.get("/", include_in_schema=False)
-    async def home() -> FileResponse:
-        return FileResponse(STATIC_DIR / "index.html")
+    @app.get("/", include_in_schema=False, response_model=None)
+    async def root():
+        settings = Settings()
+        if settings.serve_ui:
+            return FileResponse(STATIC_DIR / "index.html")
+        return RedirectResponse(url="/docs")
 
     @app.exception_handler(EmptyTextError)
     async def empty_text_handler(_: Request, exc: EmptyTextError) -> JSONResponse:
@@ -100,13 +108,16 @@ app = create_app()
 
 
 def run() -> None:
+    import os
     import uvicorn
+
+    reload = os.getenv("DEV_RELOAD", "").lower() in ("1", "true", "yes")
 
     uvicorn.run(
         "job_matcher.main:app",
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=8000,
-        reload=True,
+        reload=reload,
     )
 
 

@@ -21,6 +21,7 @@ class MatchPipeline:
     embedder: LocalEmbedder | OpenAIEmbedder
     comparator: LocalComparator | LLMComparator
     scorer: MatchScorer
+    ai_fallback: bool = False
 
     async def run(
         self,
@@ -44,12 +45,12 @@ class MatchPipeline:
             overall_score=breakdown.overall_score,
             embedding_similarity=breakdown.embedding_similarity,
             llm_alignment_score=breakdown.llm_alignment_score,
-            matched_skills=comparison.matched_skills,
+            matched_skills=[],
             missing_skills=comparison.missing_skills,
             missing_requirements=comparison.missing_requirements,
             missing_qualifications=comparison.missing_qualifications,
             missing_experience=comparison.missing_experience,
-            strengths=comparison.strengths,
+            strengths=[],
             recommendations=comparison.recommendations,
             action_items=comparison.action_items,
             resume_suggestions=comparison.resume_suggestions,
@@ -61,6 +62,7 @@ class MatchPipeline:
                 "job_chars": job_doc.char_count,
                 "job_input": "text",
                 "match_provider": provider,
+                "ai_fallback": self.ai_fallback,
                 "elapsed_ms": elapsed_ms,
                 "embedding_model": (
                     self.settings.embedding_model

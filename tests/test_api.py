@@ -26,17 +26,28 @@ def sample_job_pdf() -> bytes:
 
 
 @pytest.mark.asyncio
-async def test_home_page():
+async def test_api_root_redirects_to_docs(monkeypatch):
+    monkeypatch.setenv("SERVE_UI", "false")
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=False) as client:
+        response = await client.get("/")
+    assert response.status_code in (307, 308)
+    assert response.headers.get("location", "").endswith("/docs")
+
+
+@pytest.mark.asyncio
+async def test_home_page_when_ui_enabled(monkeypatch):
+    monkeypatch.setenv("SERVE_UI", "true")
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/")
     assert response.status_code == 200
     assert "Career Aligner" in response.text
-    assert "Analyze Match" in response.text
+    assert "Run agent analysis" in response.text
 
 
 @pytest.mark.asyncio
-async def test_match_requires_openai_key(sample_resume_pdf: bytes, monkeypatch):
+async def test_match_falls_back_without_openai_key(sample_resume_pdf: bytes, monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "")
     monkeypatch.setenv("MATCH_PROVIDER", "openai")
     transport = ASGITransport(app=app)
@@ -51,8 +62,11 @@ async def test_match_requires_openai_key(sample_resume_pdf: bytes, monkeypatch):
                 "company_about": "AI startup focused on NLP products.",
             },
         )
-    assert response.status_code == 503
-    assert "OPENAI" in response.json()["detail"].upper()
+    assert response.status_code == 200
+    data = response.json()
+    assert data["metadata"]["ai_fallback"] is True
+    assert data["metadata"]["match_provider"] == "free_local"
+    assert len(data["missing_skills"]) >= 1
 
 
 @pytest.mark.asyncio
@@ -78,8 +92,10 @@ async def test_free_match_works_without_openai(
     assert 0 <= data["overall_score"] <= 100
     assert data["metadata"]["match_provider"] == "free_local"
     assert len(data["resume_suggestions"]) >= 1
-    assert any("Python" in s for s in data["matched_skills"])
-    assert len(data["missing_skills"][0]) > 20 if data["missing_skills"] else True
+    assert len(data["resume_suggestions"]) <= 6
+    assert data["matched_skills"] == []
+    assert data["strengths"] == []
+    assert len(data["missing_skills"]) >= 1
 
 
 @pytest.mark.asyncio
@@ -111,7 +127,9 @@ def test_build_job_document_combines_company_and_description():
 
 
 @pytest.mark.asyncio
-async def test_health_endpoint():
+async def test_health_endpoint(monkeypatch):
+    monkeypatch.setenv("MATCH_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "")
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/health")
@@ -120,7 +138,9 @@ async def test_health_endpoint():
     assert data["status"] == "ok"
     assert "openai_configured" in data
     assert data["free_mode"] is True
-    assert data["match_provider"] == "free"
+    assert data["match_provider"] == "openai"
+    assert data["serve_ui"] is True
+    assert data["ready"] is True
 
 
 @pytest.mark.asyncio

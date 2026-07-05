@@ -1,117 +1,116 @@
 # Career Aligner
 
-> **I built this for my own job hunt. Now it's yours — free, local, no subscription.**
+**An AI career agent that tells you what's missing — not what's already on your CV.**
 
-Upload your CV. Paste a job description. Get detailed feedback on fit, missing skills, and exactly what to change on your resume.
+Upload a resume PDF, paste a job description, and get a match score plus short, direct feedback on gaps and CV fixes. Built by an MSc AI student for real job applications.
 
-**No API key · No billing · No account · Your CV stays on your machine**
-
+[![CI](https://github.com/VamshiKrishnaBandari07/agentic-career-aligner/actions/workflows/ci.yml/badge.svg)](https://github.com/VamshiKrishnaBandari07/agentic-career-aligner/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776ab?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/VamshiKrishnaBandari07/agentic-career-aligner/actions/workflows/ci.yml/badge.svg)](https://github.com/VamshiKrishnaBandari07/agentic-career-aligner/actions)
-
-<p align="center">
-  <strong>Clone → Run → Review your CV in 2 minutes</strong>
-</p>
 
 ---
 
-## One-command start
+## Highlights
+
+- **Gap-focused feedback** — only what you're missing, in plain English
+- **Works immediately** — free local mode, no API key required
+- **Optional AI mode** — GPT-powered analysis with your own OpenAI key
+- **Professional web UI** + **REST API** with Swagger docs
+- **Private by default** — runs on your machine; your CV never leaves it
+
+---
+
+## Quick start
 
 ### Windows
+
 ```bat
 git clone https://github.com/VamshiKrishnaBandari07/agentic-career-aligner.git
 cd agentic-career-aligner
 run.bat
 ```
-Or double-click **`run.bat`**
 
 ### Mac / Linux
+
 ```bash
 git clone https://github.com/VamshiKrishnaBandari07/agentic-career-aligner.git
 cd agentic-career-aligner
 chmod +x run.sh && ./run.sh
 ```
 
-Open **http://127.0.0.1:8000** → upload resume → paste job → **Analyze Match**
+Open **http://127.0.0.1:8000** → upload resume → paste job description → **Run agent analysis**
 
 ---
 
 ## What you get
 
-| Output | What it tells you |
-|--------|-------------------|
-| **Match score** | How well your CV fits this specific job (0–100%) |
-| **Matched skills** | Skills you have that the job wants |
-| **Missing skills** | Technical gaps + how to fix them on your CV |
-| **Missing requirements** | Responsibilities not covered on your resume |
-| **Missing qualifications** | Education / experience gaps |
-| **Resume suggestions** | Exact bullets and sections to add |
-| **Action items** | Step-by-step plan before you apply |
-
----
-
-## Why I built this
-
-Job hunting as an MSc AI student means tailoring your CV for every application. Paid resume tools charge monthly fees for the same analysis. I wanted something that:
-
-- Works **offline on my laptop**
-- Costs **nothing**
-- Keeps my **CV private**
-- Gives **actionable** feedback, not generic advice
-
-So I built Career Aligner. I use it for every application. Now you can too.
+| Output | Description |
+|--------|-------------|
+| **Match score** | Overall fit (0–100%) for this specific role |
+| **Missing skills** | Tools/tech the job wants that your CV lacks |
+| **Missing requirements** | Responsibilities not reflected on your resume |
+| **Missing qualifications** | Degree, certs, or years-of-experience gaps |
+| **CV fixes** | Short, actionable edits to make before applying |
+| **Next steps** | Priority actions to close the gap |
 
 ---
 
 ## How it works
 
-```
-Resume PDF  ──►  PyMuPDF text extraction
-                        │
-Job text    ──►  Skill & requirement analysis  ──►  Gap report + suggestions
-(pasted)            (runs locally, no cloud)
+```mermaid
+flowchart LR
+    A[Resume PDF] --> B[PyMuPDF extract]
+    C[Job description] --> D[Gap analysis]
+    B --> D
+    D --> E[Match score + missing items + CV fixes]
 ```
 
-**Default mode = 100% free local analysis.** Optional OpenAI mode available if you want GPT-powered feedback (requires your own API key).
+**Local mode (default):** rule-based skill and requirement matching — free, offline, no account.
+
+**AI mode:** embeddings + GPT for deeper semantic analysis — set `OPENAI_API_KEY` in `.env`.
 
 ---
 
-## Features
+## Configuration
 
-- PDF resume upload with smart text extraction
-- Paste job description + optional company info
-- Detailed gap analysis with resume rewrite suggestions
-- Clean web UI — no install beyond Python
-- REST API with Swagger docs at `/docs`
-- Modular Python architecture (great for portfolios)
-- CI tests on every push
+Copy `.env.example` to `.env`:
 
----
-
-## Manual setup
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # Mac/Linux
-pip install -e .
-job-matcher
+```env
+MATCH_PROVIDER=free          # free | openai
+OPENAI_API_KEY=              # required only for openai mode
+SERVE_UI=true                # web UI at / (false = API docs only)
 ```
 
-No `.env` file needed. Free mode works out of the box.
+| Mode | API key | Best for |
+|------|---------|----------|
+| `free` | Not needed | Instant local use, privacy, zero cost |
+| `openai` | Required | Richer AI feedback via GPT |
+
+If `openai` is set without a valid key, the app **falls back to local mode** automatically.
 
 ---
 
 ## API
 
+Interactive docs: **http://127.0.0.1:8000/docs**
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/` | GET | Web UI |
-| `/match` | POST | Resume PDF + job text → full analysis |
-| `/health` | GET | Status check |
-| `/docs` | GET | Swagger API docs |
+| `/match` | POST | Resume PDF + job text → analysis |
+| `/parse` | POST | Extract text from a PDF |
+| `/health` | GET | Server status |
+| `/docs` | GET | Swagger UI |
+
+**Example**
+
+```bash
+curl -X POST "http://127.0.0.1:8000/match" \
+  -F "resume=@resume.pdf" \
+  -F "job_description=Requirements: Python, PyTorch, NLP..." \
+  -F "company_about=AI startup building NLP products"
+```
 
 ---
 
@@ -119,45 +118,43 @@ No `.env` file needed. Free mode works out of the box.
 
 ```
 src/job_matcher/
-├── api/              # FastAPI routes
-├── core/             # Config, pipeline, schemas
+├── api/                 # FastAPI routes & dependencies
+├── core/                # Config, pipeline, schemas
 ├── services/
-│   ├── analysis/     # Gap analyzer
-│   ├── comparison/   # Local + optional OpenAI
-│   ├── feedback/     # Resume suggestion builder
-│   ├── pdf/          # PDF parser
-│   └── skills/       # Skill extraction
-├── integrations/     # Optional OpenAI client
-└── static/           # Web UI
+│   ├── analysis/        # Gap analyzer
+│   ├── comparison/      # Local + OpenAI comparators
+│   ├── feedback/        # Human-readable suggestions
+│   ├── pdf/             # PDF text extraction
+│   └── skills/          # Skill extraction
+├── integrations/        # OpenAI client
+└── static/              # Web UI
 ```
 
 ---
 
-## Tests
+## Development
 
 ```bash
+python -m venv .venv
+.venv\Scripts\activate       # Windows
+# source .venv/bin/activate  # Mac/Linux
 pip install -e ".[dev]"
 pytest
 ```
 
 ---
 
-## LinkedIn post ready
-
-See **[LINKEDIN.md](LINKEDIN.md)** for copy-paste posts to share this project.
-
----
-
 ## Tech stack
 
-Python 3.10+ · FastAPI · PyMuPDF · NumPy · Pydantic · Uvicorn
+Python · FastAPI · PyMuPDF · Pydantic · NumPy · Uvicorn · OpenAI (optional)
 
 ---
 
 ## Author
 
-**Vamshi Krishna Bandari** — MSc AI student  
-[GitHub](https://github.com/VamshiKrishnaBandari07) · [Repository](https://github.com/VamshiKrishnaBandari07/agentic-career-aligner)
+**Vamshi Krishna Bandari** — MSc Artificial Intelligence
+
+[GitHub](https://github.com/VamshiKrishnaBandari07) · [LinkedIn post templates](LINKEDIN.md)
 
 ---
 

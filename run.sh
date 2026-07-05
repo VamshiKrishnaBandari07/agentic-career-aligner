@@ -4,8 +4,7 @@ cd "$(dirname "$0")"
 
 echo ""
 echo "  ============================================"
-echo "   Career Aligner - Free Local CV Review"
-echo "   No subscription. No API key. 100% private."
+echo "   Career Aligner — AI Career Agent"
 echo "  ============================================"
 echo ""
 
@@ -17,9 +16,17 @@ fi
 echo "[2/3] Installing dependencies..."
 .venv/bin/pip install -e . -q
 
+if [ ! -f ".env" ]; then
+  echo "Creating .env from .env.example..."
+  cp .env.example .env
+fi
+
 echo "[3/3] Starting server..."
 echo ""
-echo "  Open in browser: http://127.0.0.1:8000"
+echo "  Open in browser:  http://127.0.0.1:8000"
+echo "  API docs:         http://127.0.0.1:8000/docs"
+echo ""
+echo "  Works immediately in free mode. Add OPENAI_API_KEY for AI matching."
 echo "  Press Ctrl+C to stop"
 echo ""
-.venv/bin/job-matcher
+.venv/bin/uvicorn job_matcher.main:app --host 127.0.0.1 --port 8000

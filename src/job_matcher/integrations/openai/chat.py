@@ -14,37 +14,34 @@ from job_matcher.core.exceptions import ComparisonError
 from job_matcher.core.models.document import ParsedDocument
 from job_matcher.core.models.match_result import ComparisonResult
 from job_matcher.integrations.openai.errors import raise_comparison_error
+from job_matcher.services.feedback.feedback_formatter import apply_feedback_limits
 
-COMPARE_PROMPT = """You are an expert career coach and technical recruiter.
-Compare the candidate's RESUME against the JOB DESCRIPTION.
+COMPARE_PROMPT = """You are a straight-talking career coach. Compare RESUME vs JOB DESCRIPTION.
 
-Return ONLY valid JSON with this exact schema:
+Return ONLY valid JSON:
 {{
-  "llm_score": <number 0-100>,
-  "matched_skills": [<skills the resume clearly demonstrates that the job wants>],
-  "missing_skills": [<technical skills, tools, or technologies required by the job but absent or weak on resume>],
-  "missing_requirements": [<non-skill requirements missing: responsibilities, methodologies, soft requirements, domain knowledge>],
-  "missing_qualifications": [<education, degree level, certifications, minimum years of experience not met>],
-  "missing_experience": [<specific work experience types, projects, or achievements the job expects but resume lacks>],
-  "strengths": [<what makes this candidate a good fit>],
-  "recommendations": [<resume improvements tailored to this specific job>],
-  "action_items": [<5-10 concrete steps with specific resume edits>],
-  "resume_suggestions": [<8-12 specific lines/sections to add or rewrite on the resume, with example bullet wording>],
-  "summary": <3-4 sentences explaining overall fit, main gaps, and priority fixes in encouraging but honest language>
+  "llm_score": <0-100>,
+  "missing_skills": [<skill/tool the job needs but resume lacks — max 6>],
+  "missing_requirements": [<short gap, max 4>],
+  "missing_qualifications": [<degree/years/certs gap, max 3>],
+  "missing_experience": [<experience type missing, max 3>],
+  "recommendations": [<top fixes, max 3>],
+  "action_items": [<do this next, max 4>],
+  "resume_suggestions": [<one-line CV edits, max 5>],
+  "summary": <1-2 short sentences: fit level + what's missing. Do not list what already matches.>
 }}
 
-Rules:
-- Be specific and descriptive. Every missing item must explain WHAT is missing, WHY it matters for this job, and HOW to fix it on the resume.
-- Quote or paraphrase actual requirements from the job description in missing_* fields.
-- missing_skills entries must be full sentences, not single words (e.g. "PyTorch — required for model training in this role; not on resume. Add a project bullet describing…").
-- resume_suggestions must include example bullet text the candidate can adapt.
-- List every meaningful gap — do not leave arrays empty if gaps exist.
+Voice & length (strict):
+- Gaps only. Do not mention skills or experience the candidate already has.
+- Write like a helpful human, not a report.
+- Each string: ONE short sentence, under 20 words when possible.
+- missing_skills: "Missing X." or "Missing X — add a bullet about Y."
+- resume_suggestions: direct edit, e.g. "Add Docker to Skills if you've used it."
+- Only list gaps you can see in the job text. Do not invent requirements.
+- Skip empty categories. No filler, no repetition.
+- summary: max 2 sentences. Focus on gaps and priority fixes only.
 
-Scoring guide:
-- 90-100: Excellent fit
-- 70-89: Strong fit, minor gaps
-- 50-69: Partial fit, notable gaps
-- Below 50: Weak fit
+Scoring: 90+ excellent · 70-89 strong · 50-69 partial · below 50 weak
 
 RESUME:
 {resume}
@@ -94,7 +91,7 @@ class OpenAIChat:
                 temperature=0.2,
             )
             raw = response.choices[0].message.content or "{}"
-            data = json.loads(raw)
+            data = apply_feedback_limits(json.loads(raw))
         except OpenAIError as exc:
             raise_comparison_error(exc)
         except Exception as exc:
@@ -102,12 +99,12 @@ class OpenAIChat:
 
         return ComparisonResult(
             llm_score=float(data.get("llm_score", 0)),
-            matched_skills=_as_str_list(data.get("matched_skills")),
+            matched_skills=[],
             missing_skills=_as_str_list(data.get("missing_skills")),
             missing_requirements=_as_str_list(data.get("missing_requirements")),
             missing_qualifications=_as_str_list(data.get("missing_qualifications")),
             missing_experience=_as_str_list(data.get("missing_experience")),
-            strengths=_as_str_list(data.get("strengths")),
+            strengths=[],
             recommendations=_as_str_list(data.get("recommendations")),
             action_items=_as_str_list(data.get("action_items")),
             resume_suggestions=_as_str_list(data.get("resume_suggestions")),

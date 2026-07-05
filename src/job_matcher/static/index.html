@@ -3,335 +3,647 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Free local CV review — upload resume, paste job description, get match score, missing skills, and resume suggestions. No subscription." />
+  <meta name="description" content="Career Aligner — an AI agent that matches your CV to any job. Built by an MSc AI student for real job applications." />
   <meta name="author" content="Vamshi Krishna Bandari" />
-  <title>Career Aligner — Free CV Review</title>
+  <title>Career Aligner — AI Career Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0f1419;
-      --surface: #1a2332;
-      --surface2: #243044;
-      --border: #2d3f5c;
-      --text: #e8edf4;
-      --muted: #8b9cb3;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --success: #22c55e;
-      --warn: #f59e0b;
-      --danger: #ef4444;
-      --match: #10b981;
+      --bg: #070b12;
+      --bg-elevated: #0d1320;
+      --surface: #111827;
+      --surface2: #1a2332;
+      --border: rgba(148, 163, 184, 0.14);
+      --border-strong: rgba(148, 163, 184, 0.28);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --muted2: #64748b;
+      --accent: #6366f1;
+      --accent2: #22d3ee;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --success: #34d399;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      line-height: 1.5;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
     }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-    header { text-align: center; margin-bottom: 2.5rem; }
-    header h1 {
-      font-size: 1.85rem;
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.18), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 0%, rgba(34, 211, 238, 0.08), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .shell { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 0 1.25rem 4rem; }
+
+    /* Nav */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 0;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      width: 40px; height: 40px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+    .brand-text h1 {
+      font-size: 1.05rem;
       font-weight: 700;
       letter-spacing: -0.02em;
-      margin-bottom: 0.5rem;
+      line-height: 1.2;
     }
-    header p { color: var(--muted); font-size: 1rem; }
-    header p.tagline { max-width: 640px; margin: 0 auto; line-height: 1.6; }
-    header p.tagline strong { color: var(--match); }
+    .brand-text span {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .pill {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+    }
+    .pill.ai { border-color: rgba(99, 102, 241, 0.4); color: #c7d2fe; background: rgba(99, 102, 241, 0.12); }
+    .pill.msc { border-color: rgba(34, 211, 238, 0.35); color: #a5f3fc; background: rgba(34, 211, 238, 0.08); }
+    .nav-link {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--muted);
+      padding: 0.4rem 0.65rem;
+      border-radius: 8px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); text-decoration: none; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 2rem 0 2.5rem;
+    }
+    .hero h2 {
+      font-size: clamp(1.75rem, 4vw, 2.35rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 0.85rem;
+      background: linear-gradient(135deg, #fff 30%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      max-width: 620px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: 1.02rem;
+    }
+    .hero .byline {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: var(--muted2);
+    }
+    .hero .byline strong { color: #c7d2fe; font-weight: 600; }
+
+    /* Pipeline */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 640px) { .pipeline { grid-template-columns: 1fr; } }
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.1rem;
+      position: relative;
+    }
+    .step-num {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent2);
+      margin-bottom: 0.35rem;
+    }
+    .step h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .step p { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+
+    /* Banner */
+    .banner {
+      display: none;
+      padding: 0.9rem 1.1rem;
+      border-radius: var(--radius-sm);
+      margin-bottom: 1.25rem;
+      font-size: 0.88rem;
+      border: 1px solid var(--border);
+    }
+    .banner.show { display: block; }
+    .banner strong { display: block; font-weight: 600; margin-bottom: 0.2rem; }
+    .banner.ai-on {
+      border-color: rgba(99, 102, 241, 0.45);
+      background: rgba(99, 102, 241, 0.1);
+      color: #c7d2fe;
+    }
+    .banner.ai-off {
+      border-color: rgba(52, 211, 153, 0.4);
+      background: rgba(52, 211, 153, 0.08);
+      color: #6ee7b7;
+    }
+    .banner.warn {
+      border-color: rgba(251, 191, 36, 0.45);
+      background: rgba(251, 191, 36, 0.08);
+      color: #fde68a;
+    }
+    .banner code {
+      background: rgba(0,0,0,0.3);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+
+    /* Form */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: var(--radius);
       padding: 1.5rem;
       margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
     }
-    .upload-grid {
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .form-grid {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 1rem;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 1.25rem;
     }
-    .text-field { margin-bottom: 1rem; }
-    .text-field label {
+    @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .upload-box {
+      border: 1.5px dashed var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 2rem 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+    }
+    .upload-box:hover, .upload-box.dragover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.06);
+    }
+    .upload-box.has-file {
+      border-color: var(--success);
+      border-style: solid;
+      background: rgba(52, 211, 153, 0.05);
+    }
+    .upload-box input { display: none; }
+    .upload-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.7; }
+    .upload-box .label { font-weight: 600; font-size: 0.95rem; }
+    .upload-box .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+    .upload-box .filename {
+      margin-top: 0.85rem;
+      font-size: 0.85rem;
+      color: var(--success);
+      word-break: break-all;
+      font-weight: 500;
+    }
+
+    .fields { display: flex; flex-direction: column; gap: 1rem; }
+    .field label {
       display: block;
       font-weight: 600;
-      margin-bottom: 0.4rem;
+      font-size: 0.88rem;
+      margin-bottom: 0.35rem;
     }
-    .text-field .hint {
-      font-size: 0.85rem;
+    .field .hint {
+      font-size: 0.78rem;
       color: var(--muted);
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.45rem;
     }
+    .field .req { color: var(--accent2); font-weight: 500; }
     textarea {
       width: 100%;
-      min-height: 140px;
-      padding: 0.85rem 1rem;
+      min-height: 110px;
+      padding: 0.8rem 0.95rem;
       font-family: inherit;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: var(--text);
-      background: var(--surface2);
+      background: var(--bg-elevated);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       resize: vertical;
-      line-height: 1.5;
+      line-height: 1.55;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
     textarea:focus {
       outline: none;
       border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
-    textarea::placeholder { color: #5c6d84; }
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 1.25rem 0;
-    }
-    .upload-box {
-      border: 2px dashed var(--border);
-      border-radius: 10px;
-      padding: 1.5rem 1rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .upload-box:hover, .upload-box.dragover {
-      border-color: var(--accent);
-      background: rgba(59, 130, 246, 0.06);
-    }
-    .upload-box.has-file { border-color: var(--match); border-style: solid; }
-    .upload-box input { display: none; }
-    .upload-box .label { font-weight: 600; margin-bottom: 0.25rem; }
-    .upload-box .hint { font-size: 0.85rem; color: var(--muted); }
-    .upload-box .filename {
-      margin-top: 0.75rem;
-      font-size: 0.9rem;
-      color: var(--match);
-      word-break: break-all;
-    }
+    textarea::placeholder { color: var(--muted2); }
+    #job-description { min-height: 150px; }
+
+    .cta-row { margin-top: 1.35rem; }
     button.analyze {
       width: 100%;
-      margin-top: 1.25rem;
-      padding: 0.9rem 1.5rem;
-      font-size: 1rem;
+      padding: 0.95rem 1.5rem;
+      font-family: inherit;
+      font-size: 0.95rem;
       font-weight: 600;
       color: #fff;
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
       border: none;
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: background 0.2s;
-    }
-    button.analyze:hover:not(:disabled) { background: var(--accent-hover); }
-    button.analyze:disabled { opacity: 0.5; cursor: not-allowed; }
-    .status {
-      text-align: center;
-      padding: 1rem;
-      color: var(--muted);
-      display: none;
-    }
-    .status.show { display: block; }
-    .spinner {
-      display: inline-block;
-      width: 18px; height: 18px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 0.5rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .error {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid var(--danger);
-      color: #fca5a5;
-      padding: 1rem;
-      border-radius: 10px;
-      margin-top: 1rem;
-      display: none;
-    }
-    .error.show { display: block; }
-    .setup-banner {
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid var(--warn);
-      color: #fcd34d;
-      padding: 1rem 1.1rem;
-      border-radius: 10px;
-      margin-bottom: 1.25rem;
-      font-size: 0.92rem;
-      display: none;
-    }
-    .setup-banner.show { display: block; }
-    .setup-banner strong { display: block; margin-bottom: 0.35rem; }
-    .setup-banner code {
-      background: rgba(0,0,0,0.25);
-      padding: 0.1rem 0.35rem;
-      border-radius: 4px;
-      font-size: 0.85rem;
-    }
-    #results { display: none; }
-    #results.show { display: block; }
-    .score-row {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-      margin-bottom: 1.25rem;
-    }
-    .score-circle {
-      width: 100px; height: 100px;
-      border-radius: 50%;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 8px 24px var(--accent-glow);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.75rem;
-      font-weight: 800;
-      border: 4px solid var(--accent);
-      flex-shrink: 0;
+      gap: 0.5rem;
     }
-    .score-circle.high { border-color: var(--success); color: var(--success); }
-    .score-circle.mid { border-color: var(--warn); color: var(--warn); }
-    .score-circle.low { border-color: var(--danger); color: var(--danger); }
-    .summary { color: var(--muted); flex: 1; min-width: 200px; }
-    .section-title {
-      font-size: 0.75rem;
+    button.analyze:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 32px var(--accent-glow);
+    }
+    button.analyze:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .status {
+      text-align: center;
+      padding: 1.1rem;
+      color: var(--muted);
+      display: none;
+      font-size: 0.9rem;
+    }
+    .status.show { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      color: #fecaca;
+      padding: 0.9rem 1rem;
+      border-radius: var(--radius-sm);
+      margin-top: 1rem;
+      font-size: 0.88rem;
+      display: none;
+      line-height: 1.5;
+    }
+    .error.show { display: block; }
+
+    /* Results */
+    #results { display: none; }
+    #results.show { display: block; animation: fadeUp 0.4s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .score-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.75rem;
+      align-items: center;
+    }
+    @media (max-width: 520px) { .score-card { grid-template-columns: 1fr; text-align: center; } }
+
+    .score-ring-wrap { position: relative; width: 120px; height: 120px; }
+    .score-ring-wrap svg { transform: rotate(-90deg); }
+    .score-ring-bg { fill: none; stroke: var(--surface2); stroke-width: 8; }
+    .score-ring-fg {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.8s ease, stroke 0.3s;
+    }
+    .score-ring-fg.high { stroke: var(--success); }
+    .score-ring-fg.mid { stroke: var(--warn); }
+    .score-ring-fg.low { stroke: var(--danger); }
+    .score-value {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .score-value .num { font-size: 1.65rem; font-weight: 800; letter-spacing: -0.03em; }
+    .score-value .pct { font-size: 0.7rem; color: var(--muted); font-weight: 500; }
+
+    .score-meta h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .score-label { font-size: 0.88rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .score-label.high { color: var(--success); }
+    .score-label.mid { color: var(--warn); }
+    .score-label.low { color: var(--danger); }
+    .summary { color: var(--muted); font-size: 0.92rem; line-height: 1.55; margin-bottom: 0.85rem; }
+    .stat-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    .chip {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .highlight-card {
+      border-color: rgba(99, 102, 241, 0.35);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(34, 211, 238, 0.04));
+    }
+    .highlight-card .card-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+    .highlight-card .card-head h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .highlight-card .card-head .badge {
+      font-size: 0.65rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(99, 102, 241, 0.2);
+      color: #c7d2fe;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    @media (max-width: 768px) { .results-grid { grid-template-columns: 1fr; } }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
       color: var(--muted);
-      margin: 1.25rem 0 0.6rem;
+      margin: 1.1rem 0 0.55rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
     .section-title:first-child { margin-top: 0; }
+    .section-title.sub { margin-top: 0.75rem; font-size: 0.65rem; }
+    .section-block.hidden { display: none; }
+    .card.hidden { display: none; }
+    .section-title .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .section-title .dot.ok { background: var(--success); }
+    .section-title .dot.gap { background: var(--danger); }
+    .section-title .dot.tip { background: var(--accent2); }
+
     ul.feedback-list { list-style: none; }
     ul.feedback-list li {
-      padding: 0.65rem 0.85rem;
-      background: var(--surface2);
+      padding: 0.55rem 0.75rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      margin-bottom: 0.5rem;
-      font-size: 0.92rem;
-      line-height: 1.55;
-    }
-    ul.feedback-list.detail li {
-      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+      font-size: 0.84rem;
+      line-height: 1.45;
     }
     ul.feedback-list.missing li { border-left: 3px solid var(--danger); }
     ul.feedback-list.matched li { border-left: 3px solid var(--success); }
     ul.feedback-list.tips li { border-left: 3px solid var(--accent); }
-    .empty-note { color: var(--muted); font-style: italic; font-size: 0.9rem; }
+    ul.feedback-list.detail li { font-size: 0.86rem; }
+    .empty-note { color: var(--muted2); font-style: italic; }
+
     footer {
       text-align: center;
-      margin-top: 2rem;
-      font-size: 0.8rem;
-      color: var(--muted);
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--muted2);
     }
-    .score-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-top: 0.35rem;
-    }
-    .score-label.high { color: var(--success); }
-    .score-label.mid { color: var(--warn); }
-    .score-label.low { color: var(--danger); }
-    .highlight-card {
-      border-color: var(--accent);
-      background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(16,185,129,0.06));
-    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--accent2); }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Career Aligner</h1>
-      <p class="tagline">I built this for my own job hunt — now it's yours. Upload your CV, paste any job description, get detailed feedback. <strong>Free. Local. Private.</strong></p>
-    </header>
+  <div class="shell">
+    <nav class="nav">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">◎</div>
+        <div class="brand-text">
+          <h1>Career Aligner</h1>
+          <span>AI Career Agent</span>
+        </div>
+      </div>
+      <div class="nav-links">
+        <span class="pill msc">MSc AI Project</span>
+        <span class="pill ai">Agentic Pipeline</span>
+        <a class="nav-link" href="/docs" target="_blank">API</a>
+        <a class="nav-link" href="https://github.com/VamshiKrishnaBandari07/agentic-career-aligner" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
 
-    <div class="setup-banner show" id="free-banner" style="border-color:var(--match);color:#6ee7b7;background:rgba(16,185,129,0.1)">
-      <strong>Runs 100% on your computer</strong>
-      No subscription · No API key · No account · Your CV never leaves this machine
+    <section class="hero">
+      <h2>Your personal AI agent for job applications</h2>
+      <p>Upload your CV, paste a job description, and let the agent analyze fit, surface gaps, and draft resume improvements — built for my own MSc job hunt.</p>
+      <p class="byline">By <strong>Vamshi Krishna Bandari</strong> · MSc Artificial Intelligence · Open source</p>
+    </section>
+
+    <div class="pipeline" aria-label="How the agent works">
+      <div class="step">
+        <div class="step-num">Step 01</div>
+        <h3>Parse</h3>
+        <p>Extract text from your resume PDF and structure the job posting.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 02</div>
+        <h3>Analyze</h3>
+        <p>Semantic matching of skills, requirements, and qualifications.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 03</div>
+        <h3>Recommend</h3>
+        <p>Actionable resume edits, bullet suggestions, and next steps.</p>
+      </div>
     </div>
 
+    <div class="banner" id="status-banner"></div>
+
     <div class="card">
-      <div class="upload-grid">
+      <div class="card-title">Run analysis</div>
+      <div class="form-grid">
         <label class="upload-box" id="resume-box">
           <input type="file" id="resume" accept=".pdf,application/pdf" />
-          <div class="label">Your Resume</div>
-          <div class="hint">PDF only · drag & drop or click</div>
+          <div class="upload-icon" aria-hidden="true">📄</div>
+          <div class="label">Resume PDF</div>
+          <div class="hint">Drag & drop or click to upload</div>
           <div class="filename" id="resume-name"></div>
         </label>
+
+        <div class="fields">
+          <div class="field">
+            <label for="job-description">Job description <span class="req">*</span></label>
+            <div class="hint">Requirements, responsibilities, and qualifications</div>
+            <textarea id="job-description" placeholder="ML Engineer — Requirements: Python, PyTorch, NLP, REST APIs…&#10;Responsibilities: Build and deploy models…&#10;Qualifications: MSc in AI or related field…" required></textarea>
+          </div>
+          <div class="field">
+            <label for="company-about">About the company</label>
+            <div class="hint">Optional — helps tailor cultural-fit suggestions</div>
+            <textarea id="company-about" placeholder="e.g. Series B health-tech startup. Values collaboration, MLOps culture, and continuous learning…"></textarea>
+          </div>
+        </div>
       </div>
 
-      <hr class="divider" />
-
-      <div class="text-field">
-        <label for="company-about">About the Company</label>
-        <div class="hint">Paste company mission, culture, or role context (optional)</div>
-        <textarea id="company-about" placeholder="e.g. Acme AI is a Series B startup building NLP tools for healthcare. We value collaboration and continuous learning…"></textarea>
+      <div class="cta-row">
+        <button class="analyze" id="analyze-btn" disabled>
+          <span>Run agent analysis</span>
+        </button>
       </div>
-
-      <div class="text-field">
-        <label for="job-description">Job Description *</label>
-        <div class="hint">Paste the full job posting — requirements, responsibilities, qualifications</div>
-        <textarea id="job-description" placeholder="e.g. ML Engineer — Requirements: Python, PyTorch, 2+ years experience…" required></textarea>
+      <div class="status" id="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>Agent is analyzing your CV against the job…</span>
       </div>
-
-      <button class="analyze" id="analyze-btn" disabled>Analyze Match</button>
-      <div class="status" id="status"><span class="spinner"></span>Analyzing your resume against the job…</div>
       <div class="error" id="error"></div>
     </div>
 
     <div id="results">
       <div class="card">
-        <div class="score-row">
-          <div class="score-circle" id="score-circle">—</div>
-          <div>
-            <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem">Overall Match</div>
+        <div class="score-card">
+          <div class="score-ring-wrap">
+            <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="score-ring-bg" cx="60" cy="60" r="52" />
+              <circle class="score-ring-fg" id="score-ring" cx="60" cy="60" r="52"
+                stroke-dasharray="326.73" stroke-dashoffset="326.73" />
+            </svg>
+            <div class="score-value">
+              <span class="num" id="score-num">—</span>
+              <span class="pct">match</span>
+            </div>
+          </div>
+          <div class="score-meta">
+            <h3>Fit analysis</h3>
             <div class="score-label" id="score-label"></div>
-            <div class="summary" id="summary"></div>
+            <p class="summary" id="summary"></p>
+            <div class="stat-chips" id="stat-chips"></div>
           </div>
         </div>
       </div>
 
       <div class="card highlight-card">
-        <div class="section-title">Suggested resume changes</div>
+        <div class="card-head">
+          <h3>What to change on your CV</h3>
+          <span class="badge">Top fixes</span>
+        </div>
         <ul class="feedback-list tips detail" id="resume-suggestions"></ul>
       </div>
 
       <div class="card">
-        <div class="section-title">Your strengths</div>
-        <ul class="feedback-list matched" id="strengths"></ul>
-
-        <div class="section-title">Matched skills</div>
-        <ul class="feedback-list matched" id="matched-skills"></ul>
-
-        <div class="section-title">Missing skills</div>
+        <div class="section-title"><span class="dot gap"></span> What's missing</div>
         <ul class="feedback-list missing" id="missing-skills"></ul>
+        <div class="section-block" id="block-requirements">
+          <div class="section-title sub"><span class="dot gap"></span> Requirements</div>
+          <ul class="feedback-list missing" id="missing-requirements"></ul>
+        </div>
+        <div class="section-block" id="block-qualifications">
+          <div class="section-title sub"><span class="dot gap"></span> Qualifications</div>
+          <ul class="feedback-list missing" id="missing-qualifications"></ul>
+        </div>
+        <div class="section-block" id="block-experience">
+          <div class="section-title sub"><span class="dot gap"></span> Experience</div>
+          <ul class="feedback-list missing" id="missing-experience"></ul>
+        </div>
+      </div>
 
-        <div class="section-title">Missing requirements</div>
-        <ul class="feedback-list missing" id="missing-requirements"></ul>
-
-        <div class="section-title">Missing qualifications</div>
-        <ul class="feedback-list missing" id="missing-qualifications"></ul>
-
-        <div class="section-title">Missing experience</div>
-        <ul class="feedback-list missing" id="missing-experience"></ul>
-
-        <div class="section-title">Recommendations</div>
-        <ul class="feedback-list tips" id="recommendations"></ul>
-
-        <div class="section-title">Action items</div>
-        <ul class="feedback-list tips" id="action-items"></ul>
+      <div class="card" id="next-steps-card">
+        <div class="section-title"><span class="dot tip"></span> Next steps</div>
+        <ul class="feedback-list tips" id="next-steps"></ul>
       </div>
     </div>
 
     <footer>
       Built by <a href="https://github.com/VamshiKrishnaBandari07" target="_blank" rel="noopener">Vamshi Krishna Bandari</a>
-      · <a href="https://github.com/VamshiKrishnaBandari07/agentic-career-aligner" target="_blank" rel="noopener">GitHub</a>
-      · <a href="/docs">API</a>
-      · MIT License · Free forever
+      · MSc Artificial Intelligence
+      · <a href="https://github.com/VamshiKrishnaBandari07/agentic-career-aligner" target="_blank" rel="noopener">Open source on GitHub</a>
+      · <a href="/docs">REST API</a>
+      · MIT License
     </footer>
   </div>
 
   <script>
+    const CIRCUMFERENCE = 2 * Math.PI * 52;
+
     const resumeInput = document.getElementById("resume");
     const jobDescriptionInput = document.getElementById("job-description");
     const companyAboutInput = document.getElementById("company-about");
@@ -340,14 +652,51 @@
     const statusEl = document.getElementById("status");
     const errorEl = document.getElementById("error");
     const resultsEl = document.getElementById("results");
-    const freeBanner = document.getElementById("free-banner");
+    const statusBanner = document.getElementById("status-banner");
 
     fetch("/health")
       .then((r) => r.json())
-      .then((data) => {
-        if (data.free_mode) freeBanner.classList.add("show");
-      })
-      .catch(() => freeBanner.classList.add("show"));
+      .then(showBanner)
+      .catch(() => {
+        statusBanner.className = "banner show warn";
+        statusBanner.innerHTML = "<strong>Server unreachable</strong>Start the app with <code>run.bat</code> and refresh.";
+      });
+
+    function showBanner(data) {
+      statusBanner.classList.add("show");
+      if (data.ai_fallback || (data.match_provider === "openai" && !data.openai_configured)) {
+        statusBanner.className = "banner show warn";
+        statusBanner.innerHTML =
+          "<strong>Running in local mode</strong>Add <code>OPENAI_API_KEY</code> to <code>.env</code> for AI-powered analysis.";
+      } else if (data.free_mode) {
+        statusBanner.className = "banner show ai-off";
+        statusBanner.innerHTML =
+          "<strong>Local mode</strong>Works without an API key. Set <code>MATCH_PROVIDER=openai</code> + key for GPT analysis.";
+      } else if (!data.openai_configured) {
+        statusBanner.className = "banner show warn";
+        statusBanner.innerHTML =
+          "<strong>API key missing</strong>Add <code>OPENAI_API_KEY</code> to <code>.env</code> then restart.";
+      } else {
+        statusBanner.className = "banner show ai-on";
+        statusBanner.innerHTML =
+          "<strong>AI ready</strong>GPT-powered analysis active.";
+      }
+    }
+
+    function parseError(data, raw, status) {
+      const detail = data?.detail;
+      if (typeof detail === "string") return detail;
+      if (Array.isArray(detail)) {
+        return detail.map((d) => d.msg || JSON.stringify(d)).join(" ");
+      }
+      return raw || `Something went wrong (${status}). Is the server running?`;
+    }
+
+    function resetResultsSections() {
+      document.querySelectorAll(".section-block, #next-steps-card").forEach((el) => {
+        el.classList.remove("hidden");
+      });
+    }
 
     function canAnalyze() {
       return resumeInput.files[0] && jobDescriptionInput.value.trim().length > 0;
@@ -392,16 +741,23 @@
     jobDescriptionInput.addEventListener("input", updateAnalyzeButton);
     companyAboutInput.addEventListener("input", updateAnalyzeButton);
 
-    function renderList(el, items, emptyText) {
+    function renderList(el, items, emptyText, hideIfEmpty) {
       el.innerHTML = "";
-      if (!items || items.length === 0) {
+      const block = el.closest(".section-block");
+      const valid = (items || []).filter((t) => t && String(t).trim());
+      if (valid.length === 0) {
+        if (hideIfEmpty && block) {
+          block.classList.add("hidden");
+          return;
+        }
         const li = document.createElement("li");
         li.className = "empty-note";
         li.textContent = emptyText;
         el.appendChild(li);
         return;
       }
-      items.forEach((text) => {
+      if (block) block.classList.remove("hidden");
+      valid.forEach((text) => {
         const li = document.createElement("li");
         li.textContent = text;
         el.appendChild(li);
@@ -415,15 +771,46 @@
     }
 
     function scoreLabel(score) {
-      if (score >= 80) return "Excellent fit — strong candidate";
+      if (score >= 80) return "Excellent fit — strong candidate profile";
       if (score >= 70) return "Good fit — minor gaps to address";
-      if (score >= 50) return "Moderate fit — tailor your CV";
-      return "Needs work — significant gaps found";
+      if (score >= 50) return "Moderate fit — tailor your CV for this role";
+      return "Significant gaps — prioritize missing areas below";
+    }
+
+    function setScoreRing(score) {
+      const ring = document.getElementById("score-ring");
+      const cls = scoreClass(score);
+      ring.className = "score-ring-fg " + cls;
+      const offset = CIRCUMFERENCE - (score / 100) * CIRCUMFERENCE;
+      ring.style.strokeDashoffset = String(offset);
+      document.getElementById("score-num").textContent = score + "%";
+    }
+
+    function setStatChips(data) {
+      const chips = document.getElementById("stat-chips");
+      chips.innerHTML = "";
+      const provider = data.metadata?.ai_fallback
+        ? "Local (no API key)"
+        : data.metadata?.match_provider === "openai"
+          ? "AI (GPT)"
+          : "Local mode";
+      const items = [
+        provider,
+        (data.missing_skills?.length || 0) + " skill gaps",
+        (data.missing_requirements?.length || 0) + " requirement gaps",
+      ];
+      items.forEach((text) => {
+        const span = document.createElement("span");
+        span.className = "chip";
+        span.textContent = text;
+        chips.appendChild(span);
+      });
     }
 
     analyzeBtn.addEventListener("click", async () => {
       errorEl.classList.remove("show");
       resultsEl.classList.remove("show");
+      resetResultsSections();
       statusEl.classList.add("show");
       analyzeBtn.disabled = true;
 
@@ -442,34 +829,37 @@
           throw new Error(raw || `Server error (${res.status})`);
         }
         if (!res.ok) {
-          const msg = data.detail || raw || "Analysis failed";
-          throw new Error(msg);
+          throw new Error(parseError(data, raw, res.status));
         }
 
         const score = Math.round(data.overall_score);
-        const circle = document.getElementById("score-circle");
-        circle.textContent = score + "%";
-        circle.className = "score-circle " + scoreClass(score);
+        setScoreRing(score);
         const labelEl = document.getElementById("score-label");
         labelEl.textContent = scoreLabel(score);
         labelEl.className = "score-label " + scoreClass(score);
         document.getElementById("summary").textContent = data.summary || "";
+        setStatChips(data);
 
         renderList(document.getElementById("resume-suggestions"), data.resume_suggestions,
-          "Add a Skills section and bullet points to your resume, then re-analyze.");
-        renderList(document.getElementById("strengths"), data.strengths, "—");
-        renderList(document.getElementById("matched-skills"), data.matched_skills,
-          "No clear skill matches yet — add a Skills section to your resume and paste a detailed job description.");
+          "Add Skills and a few bullet points, then try again.");
         renderList(document.getElementById("missing-skills"), data.missing_skills,
-          "No missing skills detected from this job text.");
+          "No skill gaps found.");
         renderList(document.getElementById("missing-requirements"), data.missing_requirements,
-          "No specific requirement gaps detected — try pasting full Responsibilities / Requirements bullets.");
+          "", true);
         renderList(document.getElementById("missing-qualifications"), data.missing_qualifications,
-          "No qualification gaps detected for degree, certs, or years of experience.");
+          "", true);
         renderList(document.getElementById("missing-experience"), data.missing_experience,
-          "No experience gaps flagged from the job text.");
-        renderList(document.getElementById("recommendations"), data.recommendations, "—");
-        renderList(document.getElementById("action-items"), data.action_items, "—");
+          "", true);
+
+        ["block-requirements", "block-qualifications", "block-experience"].forEach((id) => {
+          const block = document.getElementById(id);
+          const list = block.querySelector("ul");
+          block.classList.toggle("hidden", list.children.length === 0);
+        });
+
+        const nextSteps = [...(data.recommendations || []), ...(data.action_items || [])];
+        renderList(document.getElementById("next-steps"), nextSteps, "You're in good shape — tweak keywords and apply.");
+        document.getElementById("next-steps-card").classList.toggle("hidden", nextSteps.length === 0);
 
         resultsEl.classList.add("show");
         resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });

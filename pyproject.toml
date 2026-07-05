@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "career-aligner"
 version = "1.0.0"
-description = "Free local CV review — upload resume, paste job description, get gap analysis and resume suggestions. No subscription."
+description = "AI career agent — CV vs job gap analysis with FastAPI. Free local mode + optional OpenAI."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

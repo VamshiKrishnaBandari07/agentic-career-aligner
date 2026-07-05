@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     chat_model: str = "gpt-4o-mini"
     match_provider: str = "free"  # free | openai
+    serve_ui: bool = True
     freeapi_base_url: str = "https://api.freeapi.app/api/v1"
     freeapi_timeout: float = 15.0
     max_pdf_mb: int = 10
@@ -48,3 +49,9 @@ class Settings(BaseSettings):
     @property
     def uses_free_local(self) -> bool:
         return self.match_provider.lower() == "free"
+
+    def for_matching(self) -> tuple["Settings", bool]:
+        """Use free local mode when OpenAI is requested but not configured."""
+        if self.uses_openai and not self.openai_configured:
+            return self.model_copy(update={"match_provider": "free"}), True
+        return self, False

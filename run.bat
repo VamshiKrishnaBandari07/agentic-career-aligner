@@ -1,9 +1,8 @@
 @echo off
-title Career Aligner - Free CV Review
+title Career Aligner
 echo.
 echo  ============================================
-echo   Career Aligner - Free Local CV Review
-echo   No subscription. No API key. 100%% private.
+echo   Career Aligner — AI Career Agent
 echo  ============================================
 echo.
 
@@ -21,10 +20,24 @@ if not exist ".venv\Scripts\python.exe" (
 
 echo [2/3] Installing dependencies...
 .venv\Scripts\pip install -e . -q
+if errorlevel 1 (
+    echo ERROR: Install failed. Check your internet connection and try again.
+    pause
+    exit /b 1
+)
+
+if not exist ".env" (
+    echo Creating .env from .env.example...
+    copy /Y ".env.example" ".env" >nul
+)
 
 echo [3/3] Starting server...
 echo.
-echo  Open in browser: http://127.0.0.1:8000
+echo  Open in browser:  http://127.0.0.1:8000
+echo  API docs:         http://127.0.0.1:8000/docs
+echo.
+echo  Works immediately in free mode. Add OPENAI_API_KEY for AI matching.
 echo  Press Ctrl+C to stop
 echo.
-.venv\Scripts\job-matcher
+
+.venv\Scripts\uvicorn job_matcher.main:app --host 127.0.0.1 --port 8000
